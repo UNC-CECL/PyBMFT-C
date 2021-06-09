@@ -1,3 +1,9 @@
+"""----------------------------------------------------------------------
+PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
+
+Last updated _9 June 2021_ by _IRB Reeves_
+----------------------------------------------------------------------"""
+
 import numpy as np
 import os
 import scipy.io
@@ -9,11 +15,9 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
     """Creates model domain and initial morphology of the bay, marsh, and upland slope. Marsh and bay depth are set
     to values close to equilibrium for the given sea level rise rate and suspended sediment concentration."""
 
-    spindur = np.size(elev_25, axis=0)
-    Dmin = 0
-    Dmax = 0.7167 * 2 * amp - 0.483
+    directory = "Calibrate/Fetch" + str(bfo) + "_Wind" + str(wind)  # Bay depth lookup table as function of fetch & wind
 
-    directory = "Calibrate/Fetch" + str(bfo) + "_Wind" + str(wind)
+    spindur = np.size(elev_25, axis=0)
 
     # Determine initial bay depth, such that change in depth will be small
     if os.path.isdir(directory) is False:
@@ -23,8 +27,6 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
     else:
         db_eq_dict = scipy.io.loadmat(directory + "/Equilibrium Bay Depth.mat")
         db_eq = db_eq_dict["db_eq"]
-        dm_eq_dict = scipy.io.loadmat(directory + "/Equilibrium Marsh Depth.mat")
-        dm_eq = dm_eq_dict["dm_eq"]
         if C / 10 > np.size(db_eq, axis=0) or R > np.size(db_eq, axis=1):
             dfo = 2
             print("Warning: Initial conditions have not been calibrated for these parameters")

@@ -1,3 +1,9 @@
+"""----------------------------------------------------------------------
+PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
+
+Last updated _9 June 2021_ by _IRB Reeves_
+----------------------------------------------------------------------"""
+
 import scipy.io
 import numpy
 
@@ -18,8 +24,3 @@ mat = scipy.io.loadmat(stratfile)
 elev_25 = mat["elev_25"]
 
 B, dfo, elevation = buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, True)
-
-
-
-
-
