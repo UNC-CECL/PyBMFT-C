@@ -96,7 +96,7 @@ def evolvemarsh(
 
     floodfraction = np.sum(time_submerged, axis=1) / P  # Portion of the tidal cycle that each point is submerged
 
-    print(floodfraction)  # IR 10Jun21: Paused here; running but not working properly
+    #print(floodfraction)  # IR 10Jun21: Paused here; running but not working properly
 
     organic_alloch = 0
     mineral = 0

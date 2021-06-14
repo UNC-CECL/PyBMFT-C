@@ -40,7 +40,7 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
 
     x_m = bfo + 1  # First marsh cell?
 
-    maxY = R / 1000 * endyear + amp + 0.5  # Maximum sea-level excursion
+    maxY = R / 1000 * (endyear + 1) + amp + 0.5  # Maximum sea-level excursion
     max_potentialwidth = math.ceil(maxY / slope)
     upland_width = math.ceil(maxY / slope)
 
@@ -50,7 +50,7 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
 
     B = bfo + mwo + upland_width  # [m] Total domain width, and also number of cells in domain each with 1 m width
     x = np.linspace(0, B - 1, num=B)  # x-position of each cell in model domain
-    elevation = np.zeros([endyear, B])
+    elevation = np.zeros([endyear + 1, B])
     elevation[:spindur, :x_m - 1] = amp - dfo  # Bay depth for first 25 (?) years is at equilibrium
     elevation[:spindur, x_m: x_m + mwo] = elev_25 - (spindur * (1 / 1000))  # Marsh elevation comes from model spinup, adjusted to modern sea level
 
@@ -78,8 +78,15 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
         print("Co = ", C, " kg/m")
         print("Wind = ", wind, " m/s")
         print("Bay Depth = ", round(100 * dfo) / 100, " m")
+        print("db = ", dfo)
         print("Fetch = ", bfo, " m")
         print("Platform = ", mwo, " m")
         print("Upland Slope = ", slope)
+        print("B = ", B)
+        print("Upland Width = ", upland_width)
+        print("mwo = ", mwo)
+        print("slope = ", slope)
+        print("maxY = ", maxY)
+
 
     return B, dfo, elevation
