@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _9 June 2021_ by _IRB Reeves_
+Last updated _15 June 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import scipy.io
@@ -14,6 +14,7 @@ import time
 from bmftc import Bmftc
 from buildtransect import buildtransect
 from evolvemarsh import evolvemarsh
+from funBAY import waveTRNS
 
 
 # # TEMP VARIABLE DEF buildtransect
@@ -82,7 +83,7 @@ from evolvemarsh import evolvemarsh
 
 # ### Actual model run
 
-# Create an instance of the BMI class, which is the model
+# Create an instance of the BMI class
 bmftc = Bmftc(
             name="default",
             time_step=1,
@@ -94,15 +95,14 @@ bmftc = Bmftc(
 
 # Run the PyBMFT-C model
 Time = time.time()  # Record start time
-for time_step in range(int(bmftc._startyear), int(bmftc._endyear)):
+for time_step in range(int(bmftc.dur)):
     bmftc.update()
 
     # Print time step to screen
-    print("\r", "Time Step: ", time_step, end="")
+    print("\r", "Time Step: ", time_step + 1, end="")
 
 # Print elapsed time of simulation
+print()
 SimDuration = time.time() - Time
 print()
 print("Elapsed Time: ", SimDuration, "sec")
-
-

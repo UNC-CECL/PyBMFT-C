@@ -1,15 +1,18 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _14 June 2021_ by _IRB Reeves_
+Last updated _15 June 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
 import scipy.io
+from scipy.integrate import solve_ivp
 import math
 import bisect
 
 from buildtransect import buildtransect
+from funBAY import funBAY
+from funBAY import POOLstopp5
 from evolvemarsh import evolvemarsh
 
 
@@ -192,8 +195,9 @@ class Bmftc:
         self._organic_dep_autoch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAT_25
         self._mineral_dep[:self._startyear, self._x_m: self._x_m + self._mwo] = self._min_25
 
-        # Run ODE
-        # OPT = odeset...
+        # Set options for ODE solver
+        POOLstopp5.terminal = True
+        # POOLstopp5.direction = 1  # IR 15Jun21: Is this correct? Trouble translating from Matlab
 
         # Calculate where elevation is right for the forest to start
         self._Forest_edge[self._startyear - 1] = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear - 1] + self._amp + self._Dmin)
@@ -202,6 +206,10 @@ class Bmftc:
         self._Bay_depth = np.zeros([self._endyear + 1])
         self._Bay_depth[:self._startyear] = self._db
         self._dmo = self._elevation[self._startyear - 1, self._x_m]  # Set marsh edge depth to the elevation of the marsh edge at year 25[?]
+
+        # Initialize
+        self._C_e_ODE = []
+        self._Fc_ODE = []
 
         # Initialize additional data storage arrays
         self._mortality = np.zeros([self._endyear + 1, self._B])
@@ -212,37 +220,79 @@ class Bmftc:
         self._bgb_sum = np.zeros([self._endyear + 1])  # [g] Sum of organic matter deposited across the marsh platform in a given year
         self._Fd = np.zeros([self._endyear + 1])  # [kg] Flux of organic matter out of the marsh due to decomposition
         self._avg_accretion = np.zeros([self._endyear + 1])  # [m/yr] Annual accretion rate averaged across the marsh platform
+        self._rhomt = np.zeros([self._dur + 1])
+        self._C_e = np.zeros([self._endyear + 1])
 
     def update(self):
         """Update Bmftc by a single time step"""
 
-        # Increase time
-        self._time_index += 1
+        # Year including spinup
+        yr = self._time_index + self._startyear
 
         # Calculate the density of the marsh edge cell
-        boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[self._time_index - 1, 0])
+        boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
         if boundyr == 0:
-            us = self._elevation[0, self._x_m] - self._elevation[self._time_index - 1, 0]  # [m] Depth of underlying stratigraphy
+            us = self._elevation[0, self._x_m] - self._elevation[yr - 1, 0]  # [m] Depth of underlying stratigraphy
             usmass = us * self._rhos  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
         else:
             usmass = 0  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
 
         # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg]
-        massm = np.sum(self._organic_dep_autoch[:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m]) / 1000 + np.sum(self._mineral_dep[:, self._x_m]) / 1000 + usmass
+        massm = np.sum(self._organic_dep_autoch[:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m]) / 1000 + np.sum(
+            self._mineral_dep[:, self._x_m]) / 1000 + usmass
         # Volume of sediment to be eroded at the current marsh edge above the depth of erosion [m3]
-        volm = self._elevation[self._time_index - 1, self._x_m] - self._elevation[self._time_index - 1, 0]
+        volm = self._elevation[yr - 1, self._x_m] - self._elevation[yr - 1, 0]
 
-        # IR 14Jun21: Returning wrong values for volm, has to do with indexing of year
-        if self._time_index == 1:
-            print("boundyr = ", boundyr)
-            print("us = ", us)
-            print("usmass = ", usmass)
-            print("massm = ", massm)
-            print("volm = ", volm)
-            print()
-            print("1: ", self._elevation[self._time_index - 1, self._x_m])
-            print("2: ", self._elevation[self._time_index - 1, 0])
-            print()
+        rhom = massm / volm  # [kg/m3] Bulk density of marsh edge
+        self._rhomt[self._time_index] = rhom
+
+        Fm = (self._Fm_min + self._Fm_org) / (3600 * 24 * 365)  # [kg/s] Mass flux of both mineral and organic sediment from the bay to the marsh
+
+        # Parameters to feed into ODE
+        PAR = [
+            self._rhos,
+            self._P,
+            self._B,
+            self._wsf,
+            self._tcr,
+            self._Co,
+            self._wind,
+            self._Ba,
+            self._Be,
+            self._amp,
+            self._RSLR,
+            Fm,
+            self._lamda,
+            self._dist,
+            self._dmo,
+            self._rhob,
+            rhom,
+            self._Fc_ODE,
+            self._C_e_ODE,
+        ]
+
+        # ODE solves for change in bay depth and width, Runge Kutta solver 2nd and 3rd order
+        # IR 15Jun21: Currently does not update Fc_ODE or C_e_ODE, and POOLstopp5 events not identical to Matlab
+        ode = solve_ivp(lambda t, y: funBAY(t, y, PAR), self._to, [self._bfo, self._db], atol=10**(-6), rtol=10**(-6), method='RK23', events=POOLstopp5)
+        fetch_ODE = ode.y[0, :]
+        db_ODE = ode.y[1, :]
+
+
+        # Remove NaNs from bay fetch and depth results
+        #db_ODE[np.isnan(db_ODE)] =  # TO DO?? OR LEAVE OUT?
+
+        db = db_ODE[-1]  # Set initial bay depth of the bay to final depth from funBAY
+        self._fetch[yr] = fetch_ODE[-1]  # Set initial bay width of the bay to final width from funBAY
+        self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
+        # self._C_e[yr] = C_e_ODE[-1]
+
+        # IR 15 Jun 21 18:11, translation paused here
+
+
+
+
+        # Increase time
+        self._time_index += 1
 
     @property
     def time_index(self):
