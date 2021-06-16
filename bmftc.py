@@ -159,7 +159,7 @@ class Bmftc:
         self._msl[self._startyear:self._endyear] = np.linspace(1, self._dur, num=self._dur) * self._SLR  # [m] Mean sea level over time relative to start
 
         # Time
-        self._to = np.linspace(1, 3600 * 24 * 365 * 1, 2)
+        self._to = np.linspace(0, 3600 * 24 * 365 * 1, 2)  # 1, 3600...
 
         # Initialize marsh and forest edge variables
         self._x_m = math.ceil(self._bfo) + 1  # First marsh cell
@@ -273,24 +273,33 @@ class Bmftc:
 
         # ODE solves for change in bay depth and width, Runge Kutta solver 2nd and 3rd order
         # IR 15Jun21: Currently does not update Fc_ODE or C_e_ODE, and POOLstopp5 events not identical to Matlab
-        ode = solve_ivp(lambda t, y: funBAY(t, y, PAR), self._to, [self._bfo, self._db], atol=10**(-6), rtol=10**(-6), method='RK23', events=POOLstopp5)
+        # Python function stores computed solution at different times (n=9) than the Matlab version (n=11), but only end value is needed
+        ode = solve_ivp(lambda t, y: funBAY(t, y, PAR, self), self._to, [self._bfo, self._db], atol=10 ** (-6), rtol=10 ** (-6), method='RK23', events=POOLstopp5)
         fetch_ODE = ode.y[0, :]
-        db_ODE = ode.y[1, :]
-
-
-        # Remove NaNs from bay fetch and depth results
-        #db_ODE[np.isnan(db_ODE)] =  # TO DO?? OR LEAVE OUT?
+        db_ODE = ode.y[1, :]  # IR 15Jun21: Check length vs Matlab version
 
         db = db_ODE[-1]  # Set initial bay depth of the bay to final depth from funBAY
         self._fetch[yr] = fetch_ODE[-1]  # Set initial bay width of the bay to final width from funBAY
         self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
-        # self._C_e[yr] = C_e_ODE[-1]
+        self._C_e[yr] = self._C_e_ODE[-1]
 
-        # IR 15 Jun 21 18:11, translation paused here
+        Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
+        Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
+        Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
 
 
 
 
+
+
+
+
+
+
+
+
+
+        # ----------------------------------------------------------------
         # Increase time
         self._time_index += 1
 

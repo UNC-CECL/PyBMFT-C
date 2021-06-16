@@ -8,7 +8,7 @@ import numpy as np
 import math
 
 
-def funBAY(t, X, PAR):
+def funBAY(t, X, PAR, self):
     """Determines change in bay depth and width by solving mass balance between fluxes of sediment into and out of the bay from marsh edge erosion, tidal exchange with the
     outside sediment source, and sediment deposited onto the marsh surface """
 
@@ -29,8 +29,6 @@ def funBAY(t, X, PAR):
     dmo = PAR[14]
     rhob = PAR[15]
     rhom = PAR[16]
-    Fc_ODE = PAR[17]
-    C_e_ODE = PAR[18]
 
     # Dynamic Variable
     fetch = X[0]  # Mudflat width
@@ -52,8 +50,8 @@ def funBAY(t, X, PAR):
 
     Fc = (Cr - Co) * (fac * 2 * amp) / P / rhob  # (m2/s) Net flux of sediment lost or gained through tidal exchange with external sediment supply/sink
 
-    #Fc_ODE[Fc_ODE.size + 1] = Fc * rhob * fetch  # Save Fc as a mass flux (kg/s) for each iteration of the ODE  # IR 15Jun21: unsure if this will work; matlab version used globals
-    #C_e_ODE[C_e_ODE.size + 1] = Cr  # %Save C_e (susp. sed. con. at marsh edge, kg/m3) for each iteration of the ODE to use in marsh model
+    self._Fc_ODE.append(Fc * rhob * fetch)  # Save Fc as a mass flux (kg/s) for each iteration of the ODE
+    self._C_e_ODE.append(Cr)  # Save C_e (SSC at marsh edge, kg/m3) for each iteration of the ODE to use in marsh model
 
     dX = np.zeros([2])
     dX[0] = E  # [m2/s, or m/s if integrated over 1m transect width] Change in bay width due to erosion

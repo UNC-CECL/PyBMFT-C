@@ -96,10 +96,13 @@ bmftc = Bmftc(
 # Run the PyBMFT-C model
 Time = time.time()  # Record start time
 for time_step in range(int(bmftc.dur)):
-    bmftc.update()
-
     # Print time step to screen
     print("\r", "Time Step: ", time_step + 1, end="")
+
+    # Run time step
+    bmftc.update()
+
+
 
 # Print elapsed time of simulation
 print()
