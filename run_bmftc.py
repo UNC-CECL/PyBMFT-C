@@ -17,7 +17,7 @@ from evolvemarsh import evolvemarsh
 from funBAY import waveTRNS
 
 
-# # TEMP VARIABLE DEF buildtransect
+# TEMP VARIABLE DEF buildtransect
 # C = 10
 # R = 1
 # amp = 0.7
@@ -26,7 +26,7 @@ from funBAY import waveTRNS
 # mwo = 1000
 # slope = 0.005
 # wind = 6
-#
+
 # # TEMP VARIABLE DEF evolvemarsh
 # x_m = 5005
 # yr = 550
@@ -45,13 +45,13 @@ from funBAY import waveTRNS
 # rhoo = 85
 # rhos = 2000
 #
-# # Test buildtransect
+# Test buildtransect
 # stratfile = "Input/MarshStrat_all_RSLR1_CO50.mat"
 # mat = scipy.io.loadmat(stratfile)
 # elev_25 = mat["elev_25"]
 #
 # B, dfo, elevation = buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot=False)
-#
+
 # # Test evolvemarsh
 # x_f = bisect.bisect_left(elevation[yr - 1], amp)  # First forest cell. Technically amp + dmin + msl[yr]
 # temp_elevation_marsh = elevation[yr - 1, x_m: x_f + 1]  # values are slightly different here

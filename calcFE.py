@@ -45,8 +45,7 @@ def calcFE(bfoc, bfop, elevation, yr, organic_dep_autoch, organic_dep_alloch, mi
 
         FE_org = 0
         FE_min = 0
-        i = 1
-
+        i = 0
         for x_m in range(x_m1, x_m2 + 1):
             if elevation[pyr, 0] < elevation[0, x_m]:  # If depth of erosion is below the lowest marsh deposit
                 us = elevation[0, x_m] - elevation[yr - 1, 0]  # [m] Depth of underlying stratigraphy

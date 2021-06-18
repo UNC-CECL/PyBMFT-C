@@ -43,7 +43,7 @@ def funBAY(t, X, PAR, self):
     tau = max((tw - tcr) / tcr, 0) * lamda  # Excess shear stress, dimensionless
     Cr = rhos * tau / (1 + tau)  # Reference suspended sediment concentration in the basin [kg/m3]
 
-    hb = dm + (df - dm) * (1 - math.exp(-dist * 0.1 / df))  # [m] scarp height at a fixed distance from the marsh according to semi-empirical shoaling profile
+    hb = dm + (df - dm) * (1 - math.exp(-dist * 0.1 / df))  # [m] scarp height at a fix  d distance from the marsh according to semi-empirical shoaling profile
     W = waveTRNS(amp, wind, fetch, hb)  # [W] Wave power density at the marsh boundary
 
     E = (Be * W / (hb - dm) - Ba * Cr * wsf / rhom)  # (m2/s) Net flux of sediment eroded from/deposited to the marsh edge

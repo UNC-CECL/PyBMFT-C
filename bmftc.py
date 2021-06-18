@@ -37,7 +37,7 @@ class Bmftc:
 
             # KV Organic
             bulk_density_mineral=2000,
-            bulk_density_organic=2000,
+            bulk_density_organic=85,
             tidal_period=12.5 * 3600 * 1,
             settling_velocity_effective=0.05 * 10 ** (-3),
             settling_velocity_mudflat=0.5 * 10 ** (-3),
@@ -288,17 +288,57 @@ class Bmftc:
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
 
-        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)  # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
+        # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
+        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
         Fe_org /= 1000  # [kg/yr] Annual net flux of organic sediment to the bay due to erosion
         Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
 
-        print("Fe_org: ", Fe_org)
-        print("Fe_min: ", Fe_min)
-        print()
+        Fb_org = Fe_org - self._Fm_org - Fc_org  # [kg/yr] Net flux of organic sediment into (or out of, if negative) the bay
+        Fb_min = Fe_min - self._Fm_min - Fc_min  # [kg/yr] Net flux of mineral sediment into (or out of, if negative) the bay
 
-        # IR 17Jun21 17:15 Fe_min/org values not matching matlab version (but are same order of mag)
+        self._BayExport[yr, :] = [Fc_org, Fc_min]  # [kg/yr] Mass of organic and mineral sediment exported from the bay each year
+        self._BayOM[yr] = Fb_org  # [kg/yr] Mass of organic sediment stored in the bay in each year
+        self._BayMM[yr] = Fb_min  # [kg/yr] Mass of mineral sediment stored in the bay in each year
 
+        # print("Fb_org: ", Fb_org)
+        # print("Fb_min: ", Fb_min)
+        # print("BayExport: ", self._BayExport[yr, :])
 
+        if Fb_org > 0 and Fb_min > 0:
+            self._OCb[yr] = Fb_org / (Fb_org + Fb_min) + 0.15  # BIG CHANGE HERE
+        elif Fb_org > 0:
+            self._OCb[yr] = 1
+        elif Fb_min > 0:
+            self._OCb[yr] = 0
+        else:
+            self._OCb[yr] = self._OCb[yr - 1]
+
+        # If bay has eroded down to depth below initial bay bottom, there is only mineral sediment remaining
+        if db < self._Bay_depth[0]:
+            self._OCb[yr] = 0.15
+
+        self._rhob = 1 / ((1 - self._OCb[yr]) / self._rhos + self._OCb[yr] / self._rhoo)  # [kg/m3] Density of bay sediment
+
+        if int(self._bfo) <= 0:
+            print("Marsh has eroded completely away")
+            # self.endyear = yr
+            # break out: to do
+
+        self._x_m = math.ceil(self._bfo) + 1  # New first marsh cell
+        x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin) + 1  # New first forest cell
+
+        tempelevation = self._elevation[yr - 1, self._x_m: x_f + 1]  # Check indexing
+        Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
+
+        print("self._x_m: ", self._x_m)
+        print("x_f: ", x_f)
+        print("self._OCb[yr]: ", self._OCb[yr])
+        print("self._rhob: ", self._rhob)
+        print("self._rhos: ", self._rhos)
+        print("self._rhoo: ", self._rhoo)
+        print("Dcells: ", Dcells)
+
+        # IR 18Jun21 17:22 paused here
 
 
 

@@ -51,7 +51,7 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
     B = bfo + mwo + upland_width  # [m] Total domain width, and also number of cells in domain each with 1 m width
     x = np.linspace(0, B - 1, num=B)  # x-position of each cell in model domain
     elevation = np.zeros([endyear + 1, B])
-    elevation[:spindur, :x_m - 1] = amp - dfo  # Bay depth for first 25 (?) years is at equilibrium
+    elevation[:spindur, :x_m] = amp - dfo  # Bay depth for first 25 (?) years is at equilibrium
     elevation[:spindur, x_m: x_m + mwo] = elev_25 - (spindur * (1 / 1000))  # Marsh elevation comes from model spinup, adjusted to modern sea level
 
     modernslope = slope * (np.linspace(1, upland_width, num=upland_width)) + elevation[spindur - 1, x_m + mwo - 1]
