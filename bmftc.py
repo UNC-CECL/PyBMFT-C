@@ -13,6 +13,7 @@ import bisect
 from buildtransect import buildtransect
 from funBAY import funBAY
 from funBAY import POOLstopp5
+from calcFE import calcFE
 from evolvemarsh import evolvemarsh
 
 
@@ -287,10 +288,15 @@ class Bmftc:
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
 
+        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)  # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
+        Fe_org /= 1000  # [kg/yr] Annual net flux of organic sediment to the bay due to erosion
+        Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
 
+        print("Fe_org: ", Fe_org)
+        print("Fe_min: ", Fe_min)
+        print()
 
-
-
+        # IR 17Jun21 17:15 Fe_min/org values not matching matlab version (but are same order of mag)
 
 
 

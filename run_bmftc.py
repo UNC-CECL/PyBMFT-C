@@ -9,9 +9,9 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import bisect
-import time
+# import time
 
-from bmftc import Bmftc
+# from bmftc import Bmftc
 from buildtransect import buildtransect
 from evolvemarsh import evolvemarsh
 from funBAY import waveTRNS
@@ -82,6 +82,8 @@ from funBAY import waveTRNS
 #                  rhos)
 
 # ### Actual model run
+import time
+from bmftc import Bmftc
 
 # Create an instance of the BMI class
 bmftc = Bmftc(
