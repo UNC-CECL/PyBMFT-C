@@ -161,6 +161,7 @@ class Bmftc:
 
         # Time
         self._to = np.linspace(0, 3600 * 24 * 365 * 1, 2)  # 1, 3600...
+        self._timestep = 365 * (24 / 12.5)  # [tidal cycles per year] number to multiply accretion simulated over a tidal cycle by
 
         # Initialize marsh and forest edge variables
         self._x_m = math.ceil(self._bfo) + 1  # First marsh cell
@@ -277,7 +278,7 @@ class Bmftc:
         # Python function stores computed solution at different times (n=9) than the Matlab version (n=11), but only end value is needed
         ode = solve_ivp(lambda t, y: funBAY(t, y, PAR, self), self._to, [self._bfo, self._db], atol=10 ** (-6), rtol=10 ** (-6), method='RK23', events=POOLstopp5)
         fetch_ODE = ode.y[0, :]
-        db_ODE = ode.y[1, :]  # IR 15Jun21: Check length vs Matlab version
+        db_ODE = ode.y[1, :]
 
         db = db_ODE[-1]  # Set initial bay depth of the bay to final depth from funBAY
         self._fetch[yr] = fetch_ODE[-1]  # Set initial bay width of the bay to final width from funBAY
@@ -300,10 +301,6 @@ class Bmftc:
         self._BayOM[yr] = Fb_org  # [kg/yr] Mass of organic sediment stored in the bay in each year
         self._BayMM[yr] = Fb_min  # [kg/yr] Mass of mineral sediment stored in the bay in each year
 
-        # print("Fb_org: ", Fb_org)
-        # print("Fb_min: ", Fb_min)
-        # print("BayExport: ", self._BayExport[yr, :])
-
         if Fb_org > 0 and Fb_min > 0:
             self._OCb[yr] = Fb_org / (Fb_org + Fb_min) + 0.15  # BIG CHANGE HERE
         elif Fb_org > 0:
@@ -324,24 +321,59 @@ class Bmftc:
             # self.endyear = yr
             # break out: to do
 
-        self._x_m = math.ceil(self._bfo) + 1  # New first marsh cell
-        x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin) + 1  # New first forest cell
+        self._x_m = math.ceil(self._bfo)  # New first marsh cell
+        x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
 
-        tempelevation = self._elevation[yr - 1, self._x_m: x_f + 1]  # Check indexing
+        tempelevation = self._elevation[yr - 1, self._x_m: x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
 
-        print("self._x_m: ", self._x_m)
-        print("x_f: ", x_f)
-        print("self._OCb[yr]: ", self._OCb[yr])
-        print("self._rhob: ", self._rhob)
-        print("self._rhos: ", self._rhos)
-        print("self._rhoo: ", self._rhoo)
-        print("Dcells: ", Dcells)
+        if Dcells > 0:  # Prograde the marsh, with new marsh cells having the same elevation as the previous marsh edge
+            tempelevation[0: Dcells] = self._elevation[yr - 1, self._Marsh_edge[yr - 1]]
+            # Account for mineral and organic material deposited in new marsh cells  # IR 21Jun21: IS THIS TO-DO??
 
-        # IR 18Jun21 17:22 paused here
+        self._msl[yr] = self._msl[yr - 1] + self._SLR
+        self._elevation[yr, 0: self._x_m] = self._msl[yr] + self._amp - db  # All bay cells have the same depth
 
+        # Mineral and organic marsh deposition
+        # IR 22Jun21: Doesn't match Matlab version perfectly from here because ODE solutions slightly different
+        (
+            tempelevation,
+            temporg_autoch,
+            temporg_alloch,
+            tempmin,
+            self._Fm_min,
+            self._Fm_org,
+            tempbgb,
+            accretion,
+            tempagb,
+        ) = evolvemarsh(
+            tempelevation,
+            self._msl[yr],
+            self._C_e[yr],
+            self._OCb[yr],
+            self._tr,
+            self._numiterations,
+            self._P,
+            self._tidal_dt,
+            self._ws,
+            self._timestep,
+            self._BMax,
+            self._Dmin,
+            self._Dmax,
+            self._rhoo,
+            self._rhos,
+            plot=False
+        )
 
-
+        # print(tempelevation)
+        # print(temporg_autoch)
+        # print(temporg_alloch)
+        # print(tempmin)
+        # print(self._Fm_min)
+        # print(self._Fm_org)
+        # print(tempbgb)
+        # print(accretion)
+        # print(tempagb)
 
 
 

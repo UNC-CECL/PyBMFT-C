@@ -81,7 +81,7 @@ from funBAY import waveTRNS
 #                  rhoo,
 #                  rhos)
 
-# ### Actual model run
+### Actual model run
 import time
 from bmftc import Bmftc
 
