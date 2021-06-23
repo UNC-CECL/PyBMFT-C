@@ -146,11 +146,14 @@ class Bmftc:
 
         # Load Forest Organic Profile files: Look-up table with soil organic matter for forest based on age and depth
         directory_fop = "Input/Forest_Organic_Profile"
-        self._forestOM = scipy.io.loadmat(directory_fop + "/forestOM.mat")  # [g] Table with forest organic matter profile stored in 25 depth increments of 2.5cm (rows) for
+        file_forestOM = scipy.io.loadmat(directory_fop + "/forestOM.mat")  # [g] Table with forest organic matter profile stored in 25 depth increments of 2.5cm (rows) for
         # forests of different ages (columns) from 1 to 80 years
-        self._forestMIN = scipy.io.loadmat(directory_fop + "/forestMIN.mat")  # [g] Table with forest mineral matter profile stored in 25 depth increments of 2.5cm (rows) for
+        self._forestOM = file_forestOM["forestOM"]
+        file_forestMIN = scipy.io.loadmat(directory_fop + "/forestMIN.mat")  # [g] Table with forest mineral matter profile stored in 25 depth increments of 2.5cm (rows) for
+        self._forestMIN = file_forestMIN["forestMIN"]
         # forests of different ages (columns) from 1 to 80 years
-        self._B_rts = scipy.io.loadmat(directory_fop + "/B_rts.mat")
+        file_B_rts = scipy.io.loadmat(directory_fop + "/B_rts.mat")
+        self._B_rts = file_B_rts["B_rts"]
 
         # Continue variable initializations
         self._startyear = np.size(self._elev25, axis=0)
@@ -364,16 +367,57 @@ class Bmftc:
             self._rhos,
             plot=False
         )
-
-        # print(tempelevation)
-        # print(temporg_autoch)
-        # print(temporg_alloch)
-        # print(tempmin)
+        # print("x_f", x_f)
+        # print(np.sum(tempelevation))
+        # print(np.sum(temporg_autoch))
+        # print(np.sum(temporg_alloch))
+        # print(np.sum(tempmin))
         # print(self._Fm_min)
         # print(self._Fm_org)
-        # print(tempbgb)
-        # print(accretion)
-        # print(tempagb)
+        # print(np.sum(tempbgb))
+        # print(np.sum(accretion))
+        # print(np.sum(tempagb))
+
+        self._elevation[yr, self._x_m: x_f + 1] = tempelevation  # [m] Set new elevation to current year
+        self._elevation[yr, x_f + 1: self._B + 1] = self._elevation[yr - 1, x_f + 1: self._B + 1]  # Forest elevation remains unchanged
+        self._mineral_dep[yr, self._x_m: x_f + 1] = tempmin  # [g] Mineral sediment deposited in a given year
+        self._organic_dep_autoch[yr, self._x_m: x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year
+        self._mortality[yr, self._x_m: x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year, for keeping track of without decomposition
+        self._organic_dep_alloch[yr, self._x_m: x_f + 1] = temporg_alloch  # [g] Allochthonous organic material deposited in a given year
+        self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
+
+        avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
+        x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
+
+        # Update forest soil organic matter
+        self._forestage += 1  # Age the forest
+        for x in range(int(self._Forest_edge[yr - 1]), x_f + 1):
+            if self._forestage < 80:
+                print(len(self._organic_dep_autoch[self._startyear - 25: self._startyear, x]))
+                print(self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525])
+
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
+            else:
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 80] + self._B_rts[:, 80]
+
+        for x in range(x_f, self._B + 1):
+            if self._forestage < 80:
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525]
+                self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - 525]
+            else:
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 80]
+                self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, 80]
+
+        df = -self._msl[yr] + self._elevation[yr, x_f: self._B + 1]
+
+        self._organic_dep_autoch[yr, x_f: self._B + 1] = self._f0 + self._fwet * math.exp(-self._fgrow * df)
+        self._mineral_dep[yr, x_f: self._B + 1] = self._forestMIN[0, 79]  # IR 23Jun21: Check indexing
+
+        # Update forest aboveground biomass
+
+
+
+
 
 
 
