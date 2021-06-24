@@ -15,6 +15,7 @@ from funBAY import funBAY
 from funBAY import POOLstopp5
 from calcFE import calcFE
 from evolvemarsh import evolvemarsh
+from decompose import decompose
 
 
 # from .functions import (
@@ -227,6 +228,9 @@ class Bmftc:
         self._avg_accretion = np.zeros([self._endyear + 1])  # [m/yr] Annual accretion rate averaged across the marsh platform
         self._rhomt = np.zeros([self._dur + 1])
         self._C_e = np.zeros([self._endyear + 1])
+        self._aboveground_forest = np.zeros([self._endyear + 1, self._B])  # Forest aboveground biomass
+        self._OM_sum_au = np.zeros([self._endyear + 1, self._B])
+        self._OM_sum_al = np.zeros([self._endyear + 1, self._B])
 
     def update(self):
         """Update Bmftc by a single time step"""
@@ -296,6 +300,9 @@ class Bmftc:
         Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
         Fe_org /= 1000  # [kg/yr] Annual net flux of organic sediment to the bay due to erosion
         Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
+        print("FIRST FE_MIN", Fe_min)
+        print("FIRST FE_ORG", Fe_org)
+        # IR 24Jun21 00:22 Fe_min value not matching Matlab version!! Debug
 
         Fb_org = Fe_org - self._Fm_org - Fc_org  # [kg/yr] Net flux of organic sediment into (or out of, if negative) the bay
         Fb_min = Fe_min - self._Fm_min - Fc_min  # [kg/yr] Net flux of mineral sediment into (or out of, if negative) the bay
@@ -393,14 +400,14 @@ class Bmftc:
         self._forestage += 1  # Age the forest
         for x in range(int(self._Forest_edge[yr - 1]), x_f + 1):
             if self._forestage < 80:
-                print(len(self._organic_dep_autoch[self._startyear - 25: self._startyear, x]))
-                print(self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525])
+                # print(len(self._organic_dep_autoch[self._startyear - 25: self._startyear, x]))
+                # print(self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525])
 
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
             else:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 80] + self._B_rts[:, 80]
 
-        for x in range(x_f, self._B + 1):
+        for x in range(x_f, self._B):
             if self._forestage < 80:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525]
                 self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - 525]
@@ -410,15 +417,69 @@ class Bmftc:
 
         df = -self._msl[yr] + self._elevation[yr, x_f: self._B + 1]
 
-        self._organic_dep_autoch[yr, x_f: self._B + 1] = self._f0 + self._fwet * math.exp(-self._fgrow * df)
-        self._mineral_dep[yr, x_f: self._B + 1] = self._forestMIN[0, 79]  # IR 23Jun21: Check indexing
+        self._organic_dep_autoch[yr, x_f: self._B + 1] = self._f0 + self._fwet * np.exp(-self._fgrow * df)
+        self._mineral_dep[yr, x_f: self._B + 1] = self._forestMIN[0, 79]
 
         # Update forest aboveground biomass
+        self._aboveground_forest[yr, x_f: self._B + 1] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
 
+        (
+            compaction,
+            tempFd,
+        ) = decompose(
+                self._x_m,
+                x_f,
+                yr,
+                self._organic_dep_autoch,
+                self._elevation,
+                self._B,
+                self._mui,
+                self._mki,
+                self._rhoo,
+        )
 
+        self._Fd[yr] = tempFd  # [kg] Flux of organic matter out of the marsh due to decomposition
 
+        # Adjust marsh and forest elevation due to compaction from decomposition
+        self._elevation[yr, self._x_m: self._B + 1] -= compaction[self._x_m: self._B + 1]
+        self._OM_sum_au[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_autoch[:yr, :])
+        self._OM_sum_al[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_alloch[:yr, :])
 
+        F = 0
+        while self._x_m < self._B:
+            if self._organic_dep_autoch[yr, self._x_m] > 0:  # If organic deposition is greater than zero, marsh is no longer growing
+                break
+            else:  # Otherwise, the marsh has drowned, and will be eroded to form new bay
+                F = 1
+                self._edge_flood[yr] += 1  # Count that cell as a flooded cell
+                self._bfo += 1  # Increase the bay fetch by one cell
+                self._x_m += 1  # Update the new location of the marsh edge
 
+        if F == 1:  # If flooding occurred, adjust marsh flux
+            # Calculate the amount of organic and mineral sediment liberated from the flooded cells
+            FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
+            # Adjust flux of mineral sediment to the marsh
+            self._Fm_min -= FF_min
+            # Adjust flux of organic sediment to the marsh
+            self._Fm_org -= FF_org
+            # Change the drowned marsh cell to z bay cell
+            self._elevation[yr, :self._x_m + 1] = self._elevation[yr, 0]
+
+        self._fluxes[:, yr] = [
+            Fe_min,
+            Fe_org,
+            self._Fm_min,
+            self._Fm_org,
+            Fc_min,
+            Fc_org,
+            Fb_min,
+            Fb_org,
+        ]
+
+        print()
+        print("Fe_min", Fe_min)
+        print("FLUX1", self._fluxes[0, yr])
+        print("FLUX8", self._fluxes[-1, yr])
 
 
         # ----------------------------------------------------------------
