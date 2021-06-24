@@ -4,85 +4,11 @@ PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 Last updated _15 June 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
-import scipy.io
-import numpy as np
-import math
-import matplotlib.pyplot as plt
-import bisect
-# import time
 
-# from bmftc import Bmftc
-from buildtransect import buildtransect
-from evolvemarsh import evolvemarsh
-from funBAY import waveTRNS
-
-
-# TEMP VARIABLE DEF buildtransect
-# C = 10
-# R = 1
-# amp = 0.7
-# bfo = 5000
-# endyear = 561
-# mwo = 1000
-# slope = 0.005
-# wind = 6
-
-# # TEMP VARIABLE DEF evolvemarsh
-# x_m = 5005
-# yr = 550
-# msl = 1 * 10 ** (-3)
-# C_e = 0.0114
-# OCb = 0.15
-# tr = 1.4
-# numiterations = 500
-# P = 45000
-# dt = 90
-# ws = 5 * 10 ** (-5)
-# timestep = 700.8
-# BMax = 2500
-# Dmin = 0
-# Dmax = 0.5204
-# rhoo = 85
-# rhos = 2000
-#
-# Test buildtransect
-# stratfile = "Input/MarshStrat_all_RSLR1_CO50.mat"
-# mat = scipy.io.loadmat(stratfile)
-# elev_25 = mat["elev_25"]
-#
-# B, dfo, elevation = buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot=False)
-
-# # Test evolvemarsh
-# x_f = bisect.bisect_left(elevation[yr - 1], amp)  # First forest cell. Technically amp + dmin + msl[yr]
-# temp_elevation_marsh = elevation[yr - 1, x_m: x_f + 1]  # values are slightly different here
-#
-# (marshelevation,
-#  organic_autoch,
-#  organic_alloch,
-#  mineral,
-#  Fm_min,
-#  Fm_org,
-#  bgb,
-#  accretion,
-#  agb
-#  ) = evolvemarsh(temp_elevation_marsh,
-#                  msl,
-#                  C_e,
-#                  OCb,
-#                  tr,
-#                  numiterations,
-#                  P,
-#                  dt,
-#                  ws,
-#                  timestep,
-#                  BMax,
-#                  Dmin,
-#                  Dmax,
-#                  rhoo,
-#                  rhos)
-
-### Actual model run
 import time
+import numpy as np
+import matplotlib.pyplot as plt
+
 from bmftc import Bmftc
 
 # Create an instance of the BMI class
@@ -95,19 +21,88 @@ bmftc = Bmftc(
             slope_upland=0.005,
 )
 
+# ==================================================================================================================================================================================
 # Run the PyBMFT-C model
 Time = time.time()  # Record start time
 for time_step in range(int(bmftc.dur)):
     # Print time step to screen
-    print("\r", "Time Step: ", time_step + 1, end="")
+    print("\r", "Time Step: ", time_step, end="")
 
     # Run time step
     bmftc.update()
-
-
 
 # Print elapsed time of simulation
 print()
 SimDuration = time.time() - Time
 print()
 print("Elapsed Time: ", SimDuration, "sec")
+
+# ==================================================================================================================================================================================
+# Sum major fluxes and output variables for analysis
+
+# Organic matter deposited in the marsh over the past 30 years [g]
+organic_dep_last30yrs = bmftc.organic_dep_autoch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1] + bmftc.organic_dep_alloch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1]
+# Mineral matter deposited in the marsh over the past 30 years [g]
+mineral_dep_last30yrs = bmftc.mineral_dep[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1]
+# # Percent organic matter [%]
+# loi_last30yrs = organic_dep_last30yrs / (organic_dep_last30yrs + mineral_dep_last30yrs) * 100
+# # Organic carbon content (%) from Craft et al (1991)
+# OCP_last30yrs = 0.4 * loi_last30yrs + 0.0025 * loi_last30yrs ** 2
+# # Organic Carbon deposited in the marsh over the past 30 years [g]
+# OC_last30yrs = OCP_last30yrs / 100 * (organic_dep_last30yrs + mineral_dep_last30yrs)
+# # Average Organic Carbon accumulation rate over the last 30 years [g C / m2 / yr]
+# OC_avg_last30yrs = np.mean(OC_last30yrs, axis=1)
+
+# Total mass of organic matter in the marsh at the end of the simulation [kg]
+marshOM_final = np.sum(np.sum(bmftc.organic_dep_autoch[:, bmftc.x_m: bmftc.x_f + 1]) + np.sum(np.sum(bmftc.organic_dep_alloch[:, bmftc.x_m: bmftc.x_f + 1]))) / 1000
+# Total mass of mineral matter in the marsh at the end of the simulation [kg]
+marshMM_final = np.sum(np.sum(bmftc.mineral_dep[:, bmftc.x_m: bmftc.x_f + 1])) / 1000
+# Average loi of the marsh across the marsh platform at the end of the simulation [%]
+marshLOI_final = marshOM_final / (marshOM_final + marshMM_final) * 100
+# Organic carbon content (%) from Craft et al (1991)
+marshOCP_final = 0.4 * marshLOI_final + 0.0025 * marshLOI_final ** 2
+# Mass of organic carbon stored in the marsh at the end of the simulation [kg]
+marshOC_final = marshOCP_final / 100 * (marshOM_final + marshMM_final)
+
+
+
+# ==================================================================================================================================================================================
+# Plot
+
+print()
+print("SUM ORG", np.sum(organic_dep_last30yrs))
+print("SUM MIN", np.sum(mineral_dep_last30yrs))
+
+plt.figure()
+plt.plot(organic_dep_last30yrs)
+plt.xlabel("Distance")
+plt.ylabel("Organic Deposition [g]")
+plt.show()
+
+plt.figure()
+plt.plot(mineral_dep_last30yrs)
+plt.xlabel("Distance")
+plt.ylabel("Mineral Deposition [g]")
+plt.show()
+
+# plt.figure()
+# plt.plot(bmftc.organic_dep_autoch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1])
+# plt.xlabel("Distance")
+# plt.ylabel("Mineral Deposition Autoch [g]")
+# plt.show()
+
+# print()
+# print("SUM ORG", np.sum(bmftc.organic_dep_autoch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1]))
+# print("SUM MIN", np.sum(bmftc.organic_dep_alloch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1]))
+
+# plt.figure()
+# plt.plot(bmftc.organic_dep_alloch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1])
+# plt.xlabel("Distance")
+# plt.ylabel("Mineral Deposition Alloch [g]")
+# plt.show()
+
+plt.figure()
+plt.plot(bmftc.elevation[bmftc.endyear - 1, :])
+plt.xlabel("Distance")
+plt.ylabel("Elevation [m MSL]")
+plt.show()

@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _15 June 2021_ by _IRB Reeves_
+Last updated _24 June 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -91,7 +91,7 @@ class Bmftc:
         self._RSLR = relative_sea_level_rise * 10 ** (-3) / (3600 * 24 * 365)  # Convert from mm/yr to m/s
         self._time_index = 0
         self._dt = time_step
-        self._dur = time_step_count
+        self._dur = time_step_count + 1
         self._Coi = reference_concentration  # mg/L
         self._Co = reference_concentration / 1000  # Convert to kg/m3
         self._slope = slope_upland
@@ -169,6 +169,7 @@ class Bmftc:
 
         # Initialize marsh and forest edge variables
         self._x_m = math.ceil(self._bfo) + 1  # First marsh cell
+        self._x_f = None  # First forest cell
         self._Marsh_edge = np.zeros([self._endyear + 1])
         self._Marsh_edge[:self._startyear] = self._x_m
         self._Forest_edge = np.zeros(self._endyear + 1)
@@ -180,6 +181,7 @@ class Bmftc:
         # marsh. Initially set to zero.
         self._OCb[:551] = 0.15  # IR 6/8: Appears hardwired; need to fix
         self._edge_flood = np.zeros(self._endyear + 1)  # IR 6/8: Undefined variable
+        self._Edge_ht = np.zeros(self._endyear + 1)  # IR 6/24: Undefined variable
 
         self._marshOM_initial = (np.sum(np.sum(self._orgAL_25)) + np.sum(np.sum(self._orgAT_25))) / 1000  # [kg] Total mass of organic matter in the marsh at the beginning of
         # the simulation (both alloch and autoch)
@@ -300,9 +302,6 @@ class Bmftc:
         Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
         Fe_org /= 1000  # [kg/yr] Annual net flux of organic sediment to the bay due to erosion
         Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
-        print("FIRST FE_MIN", Fe_min)
-        print("FIRST FE_ORG", Fe_org)
-        # IR 24Jun21 00:22 Fe_min value not matching Matlab version!! Debug
 
         Fb_org = Fe_org - self._Fm_org - Fc_org  # [kg/yr] Net flux of organic sediment into (or out of, if negative) the bay
         Fb_min = Fe_min - self._Fm_min - Fc_min  # [kg/yr] Net flux of mineral sediment into (or out of, if negative) the bay
@@ -328,13 +327,13 @@ class Bmftc:
 
         if int(self._bfo) <= 0:
             print("Marsh has eroded completely away")
-            # self.endyear = yr
-            # break out: to do
+            self._endyear = yr
+            return  # Exit program
 
         self._x_m = math.ceil(self._bfo)  # New first marsh cell
-        x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
+        self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
 
-        tempelevation = self._elevation[yr - 1, self._x_m: x_f + 1]
+        tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
 
         if Dcells > 0:  # Prograde the marsh, with new marsh cells having the same elevation as the previous marsh edge
@@ -374,61 +373,53 @@ class Bmftc:
             self._rhos,
             plot=False
         )
-        # print("x_f", x_f)
-        # print(np.sum(tempelevation))
-        # print(np.sum(temporg_autoch))
-        # print(np.sum(temporg_alloch))
-        # print(np.sum(tempmin))
-        # print(self._Fm_min)
-        # print(self._Fm_org)
-        # print(np.sum(tempbgb))
-        # print(np.sum(accretion))
-        # print(np.sum(tempagb))
 
-        self._elevation[yr, self._x_m: x_f + 1] = tempelevation  # [m] Set new elevation to current year
-        self._elevation[yr, x_f + 1: self._B + 1] = self._elevation[yr - 1, x_f + 1: self._B + 1]  # Forest elevation remains unchanged
-        self._mineral_dep[yr, self._x_m: x_f + 1] = tempmin  # [g] Mineral sediment deposited in a given year
-        self._organic_dep_autoch[yr, self._x_m: x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year
-        self._mortality[yr, self._x_m: x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year, for keeping track of without decomposition
-        self._organic_dep_alloch[yr, self._x_m: x_f + 1] = temporg_alloch  # [g] Allochthonous organic material deposited in a given year
+        print()
+        print("temp alloch", np.sum(temporg_alloch))
+        print("temp autoch", np.sum(temporg_autoch))
+
+        self._elevation[yr, self._x_m: self._x_f + 1] = tempelevation  # [m] Set new elevation to current year
+        self._elevation[yr, self._x_f + 1: self._B + 1] = self._elevation[yr - 1, self._x_f + 1: self._B + 1]  # Forest elevation remains unchanged
+        self._mineral_dep[yr, self._x_m: self._x_f + 1] = tempmin  # [g] Mineral sediment deposited in a given year
+        self._organic_dep_autoch[yr, self._x_m: self._x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year
+        self._mortality[yr, self._x_m: self._x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year, for keeping track of without decomposition
+        self._organic_dep_alloch[yr, self._x_m: self._x_f + 1] = temporg_alloch  # [g] Allochthonous organic material deposited in a given year
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
         avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
-        x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
+        self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
 
         # Update forest soil organic matter
         self._forestage += 1  # Age the forest
-        for x in range(int(self._Forest_edge[yr - 1]), x_f + 1):
+        for x in range(int(self._Forest_edge[yr - 1]), self._x_f + 1):
             if self._forestage < 80:
-                # print(len(self._organic_dep_autoch[self._startyear - 25: self._startyear, x]))
-                # print(self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525])
-
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x - 1] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
+                # self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
             else:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 80] + self._B_rts[:, 80]
-
-        for x in range(x_f, self._B):
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x - 1] = self._forestOM[:, 79] + self._B_rts[:, 79]
+                # self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 80] + self._B_rts[:, 80]
+        for x in range(self._x_f, self._B):
             if self._forestage < 80:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525]
                 self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - 525]
             else:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 80]
-                self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, 80]
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79]
+                self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, 79]
 
-        df = -self._msl[yr] + self._elevation[yr, x_f: self._B + 1]
+        df = -self._msl[yr] + self._elevation[yr, self._x_f: self._B + 1]
 
-        self._organic_dep_autoch[yr, x_f: self._B + 1] = self._f0 + self._fwet * np.exp(-self._fgrow * df)
-        self._mineral_dep[yr, x_f: self._B + 1] = self._forestMIN[0, 79]
+        self._organic_dep_autoch[yr, self._x_f: self._B + 1] = self._f0 + self._fwet * np.exp(-self._fgrow * df)
+        self._mineral_dep[yr, self._x_f: self._B + 1] = self._forestMIN[0, 79]
 
         # Update forest aboveground biomass
-        self._aboveground_forest[yr, x_f: self._B + 1] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
+        self._aboveground_forest[yr, self._x_f: self._B + 1] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
 
         (
             compaction,
             tempFd,
         ) = decompose(
                 self._x_m,
-                x_f,
+                self._x_f,
                 yr,
                 self._organic_dep_autoch,
                 self._elevation,
@@ -465,6 +456,8 @@ class Bmftc:
             # Change the drowned marsh cell to z bay cell
             self._elevation[yr, :self._x_m + 1] = self._elevation[yr, 0]
 
+        print("x_m", self._x_m)
+
         self._fluxes[:, yr] = [
             Fe_min,
             Fe_org,
@@ -476,15 +469,50 @@ class Bmftc:
             Fb_org,
         ]
 
-        print()
-        print("Fe_min", Fe_min)
-        print("FLUX1", self._fluxes[0, yr])
-        print("FLUX8", self._fluxes[-1, yr])
+        # print()
+        # print("Fe_min", Fe_min)
+        # print("FLUX2", self._fluxes[1, yr])
+        # print("FLUX3", self._fluxes[2, yr])
+        # print("FLUX4", self._fluxes[3, yr])
+        # print("FLUX5", self._fluxes[4, yr])
+        # print("FLUX6", self._fluxes[5, yr])
+        # print("FLUX7", self._fluxes[6, yr])
 
+        # Update inputs for marsh edge
+        self._Marsh_edge[yr] = self._x_m
+        self._Forest_edge[yr] = self._x_f
+        self._Bay_depth[yr] = db
 
-        # ----------------------------------------------------------------
+        if 0 < self._x_m < self._B:
+            self._dmo = self._msl[yr] + self._amp - self._elevation[yr, self._x_m]
+            self._Edge_ht[yr] = self._dmo
+        elif self._x_m <= 0:  # Condition for if the marsh has expanded to fill the basin
+            print("Marsh has expanded to fill the basin.")
+            self._endyear = yr
+            self._edge_flood[self._endyear + 1:] = []  # ?
+            return  # Exit program
+        elif self._x_m >= self._B:  # Condition for if the marsh has eroded completely away
+            print("Marsh has retreated. Basin is completely flooded.")
+            self._endyear = yr
+            self._edge_flood[self._endyear + 1:] = []  # ?
+            return  # Exit program
+
+        if self._db < 0.3:  # Condition for if the bay gets very shallow. Should this number be calculated within the code?
+            print("Bay has filled in to form marsh.")
+            self._endyear = yr
+            self._edge_flood[self._endyear + 1:] = []  # ?
+            return  # Exit program
+
+        self._fetch[yr] = self._bfo  # Save change in bay fetch through time
+
+        self._Fc_ODE = []
+        self._C_e_ODE = []
+
         # Increase time
         self._time_index += 1
+
+        # TIME STEP COMPLETE
+        # ==========================================================================================================================================================================
 
     @property
     def time_index(self):
@@ -493,3 +521,31 @@ class Bmftc:
     @property
     def dur(self):
         return self._dur
+
+    @property
+    def organic_dep_autoch(self):
+        return self._organic_dep_autoch
+
+    @property
+    def x_m(self):
+        return self._x_m
+
+    @property
+    def x_f(self):
+        return self._x_f
+
+    @property
+    def organic_dep_alloch(self):
+        return self._organic_dep_alloch
+
+    @property
+    def endyear(self):
+        return self._endyear
+
+    @property
+    def mineral_dep(self):
+        return self._mineral_dep
+
+    @property
+    def elevation(self):
+        return self._elevation

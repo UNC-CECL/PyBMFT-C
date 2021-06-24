@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _16 June 2021_ by _IRB Reeves_
+Last updated _24 June 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -46,7 +46,7 @@ def calcFE(bfoc, bfop, elevation, yr, organic_dep_autoch, organic_dep_alloch, mi
         FE_org = 0
         FE_min = 0
         i = 0
-        for x_m in range(x_m1, x_m2 + 1):
+        for x_m in range(x_m1, x_m2):
             if elevation[pyr, 0] < elevation[0, x_m]:  # If depth of erosion is below the lowest marsh deposit
                 us = elevation[0, x_m] - elevation[yr - 1, 0]  # [m] Depth of underlying stratigraphy
                 usmass = us * rhos * 1000  # [g] Mass of pure mineral sediment underlying marsh at marsh edge
