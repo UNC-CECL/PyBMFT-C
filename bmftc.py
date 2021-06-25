@@ -160,7 +160,7 @@ class Bmftc:
         self._startyear = np.size(self._elev25, axis=0)
         self._endyear = self._dur + self._startyear
 
-        self._msl = np.zeros([self._endyear + 1])
+        self._msl = np.zeros([self._endyear])
         self._msl[self._startyear:self._endyear] = np.linspace(1, self._dur, num=self._dur) * self._SLR  # [m] Mean sea level over time relative to start
 
         # Time
@@ -168,20 +168,20 @@ class Bmftc:
         self._timestep = 365 * (24 / 12.5)  # [tidal cycles per year] number to multiply accretion simulated over a tidal cycle by
 
         # Initialize marsh and forest edge variables
-        self._x_m = math.ceil(self._bfo) + 1  # First marsh cell
+        self._x_m = math.ceil(self._bfo)  # First marsh cell
         self._x_f = None  # First forest cell
-        self._Marsh_edge = np.zeros([self._endyear + 1])
+        self._Marsh_edge = np.zeros([self._endyear])
         self._Marsh_edge[:self._startyear] = self._x_m
-        self._Forest_edge = np.zeros(self._endyear + 1)
-        self._fetch = np.zeros([self._endyear + 1])
+        self._Forest_edge = np.zeros(self._endyear)
+        self._fetch = np.zeros([self._endyear])
         self._fetch[:self._startyear] = self._bfo
 
         self._tidal_dt = self._P / self._numiterations  # Inundation time?
-        self._OCb = np.zeros(self._endyear + 1)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the
+        self._OCb = np.zeros(self._endyear)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the
         # marsh. Initially set to zero.
         self._OCb[:551] = 0.15  # IR 6/8: Appears hardwired; need to fix
-        self._edge_flood = np.zeros(self._endyear + 1)  # IR 6/8: Undefined variable
-        self._Edge_ht = np.zeros(self._endyear + 1)  # IR 6/24: Undefined variable
+        self._edge_flood = np.zeros(self._endyear)  # IR 6/8: Undefined variable
+        self._Edge_ht = np.zeros(self._endyear)  # IR 6/24: Undefined variable
 
         self._marshOM_initial = (np.sum(np.sum(self._orgAL_25)) + np.sum(np.sum(self._orgAT_25))) / 1000  # [kg] Total mass of organic matter in the marsh at the beginning of
         # the simulation (both alloch and autoch)
@@ -196,9 +196,9 @@ class Bmftc:
                                                            plot=False)
 
         # Set up vectors for deposition
-        self._organic_dep_alloch = np.zeros([self._endyear + 1, self._B])
-        self._organic_dep_autoch = np.zeros([self._endyear + 1, self._B])
-        self._mineral_dep = np.zeros([self._endyear + 1, self._B])
+        self._organic_dep_alloch = np.zeros([self._endyear, self._B])
+        self._organic_dep_autoch = np.zeros([self._endyear, self._B])
+        self._mineral_dep = np.zeros([self._endyear, self._B])
         self._organic_dep_alloch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAL_25  # Set the first 25[?] years to be the spin up values for deposition
         self._organic_dep_autoch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAT_25
         self._mineral_dep[:self._startyear, self._x_m: self._x_m + self._mwo] = self._min_25
@@ -211,7 +211,7 @@ class Bmftc:
         self._Forest_edge[self._startyear - 1] = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear - 1] + self._amp + self._Dmin)
         self._forestage = self._startforestage
 
-        self._Bay_depth = np.zeros([self._endyear + 1])
+        self._Bay_depth = np.zeros([self._endyear])
         self._Bay_depth[:self._startyear] = self._db
         self._dmo = self._elevation[self._startyear - 1, self._x_m]  # Set marsh edge depth to the elevation of the marsh edge at year 25[?]
 
@@ -220,19 +220,19 @@ class Bmftc:
         self._Fc_ODE = []
 
         # Initialize additional data storage arrays
-        self._mortality = np.zeros([self._endyear + 1, self._B])
-        self._BayExport = np.zeros([self._endyear + 1, 2])
-        self._BayOM = np.zeros([self._endyear + 1])
-        self._BayMM = np.zeros([self._endyear + 1])
-        self._fluxes = np.zeros([8, self._endyear + 1])
-        self._bgb_sum = np.zeros([self._endyear + 1])  # [g] Sum of organic matter deposited across the marsh platform in a given year
-        self._Fd = np.zeros([self._endyear + 1])  # [kg] Flux of organic matter out of the marsh due to decomposition
-        self._avg_accretion = np.zeros([self._endyear + 1])  # [m/yr] Annual accretion rate averaged across the marsh platform
-        self._rhomt = np.zeros([self._dur + 1])
-        self._C_e = np.zeros([self._endyear + 1])
-        self._aboveground_forest = np.zeros([self._endyear + 1, self._B])  # Forest aboveground biomass
-        self._OM_sum_au = np.zeros([self._endyear + 1, self._B])
-        self._OM_sum_al = np.zeros([self._endyear + 1, self._B])
+        self._mortality = np.zeros([self._endyear, self._B])
+        self._BayExport = np.zeros([self._endyear, 2])
+        self._BayOM = np.zeros([self._endyear])
+        self._BayMM = np.zeros([self._endyear])
+        self._fluxes = np.zeros([8, self._endyear])
+        self._bgb_sum = np.zeros([self._endyear])  # [g] Sum of organic matter deposited across the marsh platform in a given year
+        self._Fd = np.zeros([self._endyear])  # [kg] Flux of organic matter out of the marsh due to decomposition
+        self._avg_accretion = np.zeros([self._endyear])  # [m/yr] Annual accretion rate averaged across the marsh platform
+        self._rhomt = np.zeros([self._dur])
+        self._C_e = np.zeros([self._endyear])
+        self._aboveground_forest = np.zeros([self._endyear, self._B])  # Forest aboveground biomass
+        self._OM_sum_au = np.zeros([self._endyear, self._B])
+        self._OM_sum_al = np.zeros([self._endyear, self._B])
 
     def update(self):
         """Update Bmftc by a single time step"""
@@ -297,6 +297,11 @@ class Bmftc:
         Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
+
+        # if self._time_index == 0:
+        #     self._bfo = 5004.437211787227
+
+
 
         # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
         Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
@@ -393,12 +398,11 @@ class Bmftc:
         self._forestage += 1  # Age the forest
         for x in range(int(self._Forest_edge[yr - 1]), self._x_f + 1):
             if self._forestage < 80:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x - 1] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
-                # self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
             else:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x - 1] = self._forestOM[:, 79] + self._B_rts[:, 79]
-                # self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 80] + self._B_rts[:, 80]
-        for x in range(self._x_f, self._B):
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79] + self._B_rts[:, 79]
+
+        for x in range(self._x_f, self._B + 1):
             if self._forestage < 80:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525]
                 self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - 525]

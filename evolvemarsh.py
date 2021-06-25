@@ -37,13 +37,13 @@ def evolvemarsh(
     C = np.zeros([L])
 
     # Loop through a tidal cycle to determine flooding duration for each point in the marsh
-    for i in range(1, numiterations + 1):
+    for i in range(1, numiterations):
         depth_iteration = 0.5 * tr * math.sin(2 * math.pi * ((i + 1) * dt / P)) + (
-                msl - marshelevation[0:L])  # [m] Depth at each position in the marsh
-        depth[i - 1, :] = depth_iteration  # Store depths in array
+                msl - marshelevation[0: L + 1])  # [m] Depth at each position in the marsh
+        depth[i, :] = depth_iteration  # Store depths in array
         temp = np.zeros([L])
         temp[depth_iteration > 0] = dt
-        time_submerged[i - 1, :] = temp  # Inundation for a single flood cycle recorded for each cell
+        time_submerged[i, :] = temp  # Inundation for a single flood cycle recorded for each cell
 
     # -------------------------
     # Belowground Productivity
