@@ -402,14 +402,13 @@ class Bmftc:
             else:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79] + self._B_rts[:, 79]
 
-        for x in range(self._x_f, self._B + 1):
+        for x in range(self._x_f, self._B):
             if self._forestage < 80:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525]
                 self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - 525]
             else:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79]
                 self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, 79]
-
         df = -self._msl[yr] + self._elevation[yr, self._x_f: self._B + 1]
 
         self._organic_dep_autoch[yr, self._x_f: self._B + 1] = self._f0 + self._fwet * np.exp(-self._fgrow * df)
@@ -417,7 +416,7 @@ class Bmftc:
 
         # Update forest aboveground biomass
         self._aboveground_forest[yr, self._x_f: self._B + 1] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
-
+        print()
         (
             compaction,
             tempFd,
