@@ -140,7 +140,7 @@ class Bmftc:
         # Load MarshStrat spin up file
         filename_spinup = "Input/MarshStrat_all_RSLR1_CO50.mat"  # IR: Need to make easily changeable
         marsh_spinup = scipy.io.loadmat(filename_spinup)
-        self._elev25 = marsh_spinup["elev_25"]
+        self._elev25 = marsh_spinup["elev_25"]  # IR 29Jun21: very slightly off from Matlab version when importing (rounding error)
         self._min_25 = marsh_spinup["min_25"]
         self._orgAL_25 = marsh_spinup["orgAL_25"]
         self._orgAT_25 = marsh_spinup["orgAT_25"]
@@ -298,11 +298,6 @@ class Bmftc:
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
 
-        # if self._time_index == 0:
-        #     self._bfo = 5004.437211787227
-
-
-
         # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
         Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
         Fe_org /= 1000  # [kg/yr] Annual net flux of organic sediment to the bay due to erosion
@@ -416,7 +411,7 @@ class Bmftc:
 
         # Update forest aboveground biomass
         self._aboveground_forest[yr, self._x_f: self._B + 1] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
-        print()
+
         (
             compaction,
             tempFd,

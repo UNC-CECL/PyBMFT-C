@@ -32,7 +32,9 @@ def decompose(
         for tempyr in range(yr, 0, -1):  # Loop through each pocket of sediment in each cell, starting at the most recently deposited
             # packet of sediment at the surface
             depth = elevation[yr, x] - elevation[tempyr, x]  # Depth of sediment pocket below the surface
+            print()
             if depth > mui:  # Maximum depth at which decomposition occurs
+                print()
                 decomp[tempyr] = 0
                 break
             else:
