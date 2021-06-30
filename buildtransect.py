@@ -19,8 +19,6 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
 
     spindur = np.size(elev_25, axis=0)
 
-    print()
-
     # Determine initial bay depth, such that change in depth will be small
     if os.path.isdir(directory) is False:
         dfo = 2
@@ -58,7 +56,6 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
 
     # Form underlying forest stratigraphy
     modernslope = slope * (np.linspace(1, upland_width, num=upland_width)) + elevation[spindur - 1, x_m + mwo - 1]
-    print()
 
     # Plot initial stratigraphy
     if plot:

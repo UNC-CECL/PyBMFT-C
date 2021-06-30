@@ -41,9 +41,9 @@ print("Elapsed Time: ", SimDuration, "sec")
 # Sum major fluxes and output variables for analysis
 
 # Organic matter deposited in the marsh over the past 30 years [g]
-organic_dep_last30yrs = bmftc.organic_dep_autoch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1] + bmftc.organic_dep_alloch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1]
+organic_dep_last30yrs = bmftc.organic_dep_autoch[bmftc.endyear - 31: bmftc.endyear, bmftc.x_m: bmftc.x_f + 1] + bmftc.organic_dep_alloch[bmftc.endyear - 31: bmftc.endyear, bmftc.x_m: bmftc.x_f + 1]
 # Mineral matter deposited in the marsh over the past 30 years [g]
-mineral_dep_last30yrs = bmftc.mineral_dep[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1]
+mineral_dep_last30yrs = bmftc.mineral_dep[bmftc.endyear - 31: bmftc.endyear, bmftc.x_m: bmftc.x_f + 1]
 # # Percent organic matter [%]
 # loi_last30yrs = organic_dep_last30yrs / (organic_dep_last30yrs + mineral_dep_last30yrs) * 100
 # # Organic carbon content (%) from Craft et al (1991)

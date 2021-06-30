@@ -141,15 +141,15 @@ def evolvemarsh(
     marshelevation += accretion
 
     # Debugging
-    print()
-    print("C_e", C_e)
-    print("OCb", OCb)
-    print("MIN", Fm_min)
-    print("ORG", Fm_org)
-    print("SUM LOI", np.sum(loi))
-    print("SUM DENSITY", np.sum(density))
-    print("SUM ACC", np.sum(accretion))
-    print("SUM AUT", np.sum(organic_autoch))
-    print("SUM ALL", np.sum(organic_alloch))
+    # print()
+    # print("C_e", C_e)
+    # print("OCb", OCb)
+    # print("MIN", Fm_min)
+    # print("ORG", Fm_org)
+    # print("SUM LOI", np.sum(loi))
+    # print("SUM DENSITY", np.sum(density))
+    # print("SUM ACC", np.sum(accretion))
+    # print("SUM AUT", np.sum(organic_autoch))
+    # print("SUM ALL", np.sum(organic_alloch))
 
     return marshelevation, organic_autoch, organic_alloch, mineral, Fm_min, Fm_org, bgb, accretion, agb

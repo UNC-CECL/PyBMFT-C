@@ -374,10 +374,6 @@ class Bmftc:
             plot=False
         )
 
-        print()
-        print("temp alloch", np.sum(temporg_alloch))
-        print("temp autoch", np.sum(temporg_autoch))
-
         self._elevation[yr, self._x_m: self._x_f + 1] = tempelevation  # [m] Set new elevation to current year
         self._elevation[yr, self._x_f + 1: self._B + 1] = self._elevation[yr - 1, self._x_f + 1: self._B + 1]  # Forest elevation remains unchanged
         self._mineral_dep[yr, self._x_m: self._x_f + 1] = tempmin  # [g] Mineral sediment deposited in a given year
@@ -454,8 +450,6 @@ class Bmftc:
             # Change the drowned marsh cell to z bay cell
             self._elevation[yr, :self._x_m + 1] = self._elevation[yr, 0]
 
-        print("x_m", self._x_m)
-
         self._fluxes[:, yr] = [
             Fe_min,
             Fe_org,
@@ -466,15 +460,6 @@ class Bmftc:
             Fb_min,
             Fb_org,
         ]
-
-        # print()
-        # print("Fe_min", Fe_min)
-        # print("FLUX2", self._fluxes[1, yr])
-        # print("FLUX3", self._fluxes[2, yr])
-        # print("FLUX4", self._fluxes[3, yr])
-        # print("FLUX5", self._fluxes[4, yr])
-        # print("FLUX6", self._fluxes[5, yr])
-        # print("FLUX7", self._fluxes[6, yr])
 
         # Update inputs for marsh edge
         self._Marsh_edge[yr] = self._x_m
