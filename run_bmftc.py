@@ -45,13 +45,13 @@ organic_dep_last30yrs = bmftc.organic_dep_autoch[bmftc.endyear - 31: bmftc.endye
 # Mineral matter deposited in the marsh over the past 30 years [g]
 mineral_dep_last30yrs = bmftc.mineral_dep[bmftc.endyear - 31: bmftc.endyear, bmftc.x_m: bmftc.x_f + 1]
 # # Percent organic matter [%]
-# loi_last30yrs = organic_dep_last30yrs / (organic_dep_last30yrs + mineral_dep_last30yrs) * 100
-# # Organic carbon content (%) from Craft et al (1991)
-# OCP_last30yrs = 0.4 * loi_last30yrs + 0.0025 * loi_last30yrs ** 2
-# # Organic Carbon deposited in the marsh over the past 30 years [g]
-# OC_last30yrs = OCP_last30yrs / 100 * (organic_dep_last30yrs + mineral_dep_last30yrs)
-# # Average Organic Carbon accumulation rate over the last 30 years [g C / m2 / yr]
-# OC_avg_last30yrs = np.mean(OC_last30yrs, axis=1)
+loi_last30yrs = organic_dep_last30yrs / (organic_dep_last30yrs + mineral_dep_last30yrs) * 100
+# Organic carbon content (%) from Craft et al (1991)
+OCP_last30yrs = 0.4 * loi_last30yrs + 0.0025 * loi_last30yrs ** 2
+# Organic Carbon deposited in the marsh over the past 30 years [g]
+OC_last30yrs = OCP_last30yrs / 100 * (organic_dep_last30yrs + mineral_dep_last30yrs)
+# Average Organic Carbon accumulation rate over the last 30 years [g C / m2 / yr]
+OC_avg_last30yrs = np.mean(OC_last30yrs, axis=1)
 
 # Total mass of organic matter in the marsh at the end of the simulation [kg]
 marshOM_final = np.sum(np.sum(bmftc.organic_dep_autoch[:, bmftc.x_m: bmftc.x_f + 1]) + np.sum(np.sum(bmftc.organic_dep_alloch[:, bmftc.x_m: bmftc.x_f + 1]))) / 1000
@@ -75,13 +75,13 @@ print("SUM MIN", np.sum(mineral_dep_last30yrs))
 
 plt.figure()
 plt.plot(organic_dep_last30yrs)
-plt.xlabel("Distance")
+plt.xlabel("Year (previous 30)")
 plt.ylabel("Organic Deposition [g]")
 plt.show()
 
 plt.figure()
 plt.plot(mineral_dep_last30yrs)
-plt.xlabel("Distance")
+plt.xlabel("Year (previous 30)")
 plt.ylabel("Mineral Deposition [g]")
 plt.show()
 

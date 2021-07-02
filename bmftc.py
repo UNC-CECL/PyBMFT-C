@@ -375,7 +375,7 @@ class Bmftc:
         )
 
         self._elevation[yr, self._x_m: self._x_f + 1] = tempelevation  # [m] Set new elevation to current year
-        self._elevation[yr, self._x_f + 1: self._B + 1] = self._elevation[yr - 1, self._x_f + 1: self._B + 1]  # Forest elevation remains unchanged
+        self._elevation[yr, self._x_f + 1: self._B] = self._elevation[yr - 1, self._x_f + 1: self._B]  # Forest elevation remains unchanged
         self._mineral_dep[yr, self._x_m: self._x_f + 1] = tempmin  # [g] Mineral sediment deposited in a given year
         self._organic_dep_autoch[yr, self._x_m: self._x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year
         self._mortality[yr, self._x_m: self._x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year, for keeping track of without decomposition
@@ -392,7 +392,7 @@ class Bmftc:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
             else:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79] + self._B_rts[:, 79]
-
+        print()
         for x in range(self._x_f, self._B):
             if self._forestage < 80:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525]
@@ -400,13 +400,14 @@ class Bmftc:
             else:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79]
                 self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, 79]
-        df = -self._msl[yr] + self._elevation[yr, self._x_f: self._B + 1]
 
-        self._organic_dep_autoch[yr, self._x_f: self._B + 1] = self._f0 + self._fwet * np.exp(-self._fgrow * df)
-        self._mineral_dep[yr, self._x_f: self._B + 1] = self._forestMIN[0, 79]
+        df = -self._msl[yr] + self._elevation[yr, self._x_f: self._B]
+
+        self._organic_dep_autoch[yr, self._x_f: self._B] = self._f0 + self._fwet * np.exp(-self._fgrow * df)
+        self._mineral_dep[yr, self._x_f: self._B] = self._forestMIN[0, 79]
 
         # Update forest aboveground biomass
-        self._aboveground_forest[yr, self._x_f: self._B + 1] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
+        self._aboveground_forest[yr, self._x_f: self._B] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
 
         (
             compaction,
@@ -426,9 +427,9 @@ class Bmftc:
         self._Fd[yr] = tempFd  # [kg] Flux of organic matter out of the marsh due to decomposition
 
         # Adjust marsh and forest elevation due to compaction from decomposition
-        self._elevation[yr, self._x_m: self._B + 1] -= compaction[self._x_m: self._B + 1]
-        self._OM_sum_au[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_autoch[:yr, :])
-        self._OM_sum_al[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_alloch[:yr, :])
+        self._elevation[yr, self._x_m: self._B] -= compaction[self._x_m: self._B]
+        self._OM_sum_au[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_autoch[:yr + 1, :])
+        self._OM_sum_al[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_alloch[:yr + 1, :])
 
         F = 0
         while self._x_m < self._B:
