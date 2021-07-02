@@ -533,3 +533,7 @@ class Bmftc:
     @property
     def elevation(self):
         return self._elevation
+
+    @property
+    def B(self):
+        return self._B

@@ -23,6 +23,24 @@ bmftc = Bmftc(
 
 # ==================================================================================================================================================================================
 # Run the PyBMFT-C model
+
+fig1 = plt.figure()
+ax1 = fig1.add_subplot(2, 2, 1)
+plt.xlabel("Distance [m]")
+plt.ylabel("Organic Deposition Autoch [g]")
+
+ax2 = fig1.add_subplot(2, 2, 3)
+plt.xlabel("Distance [m]")
+plt.ylabel("Mineral Deposition [g]")
+
+ax3 = fig1.add_subplot(2, 2, 4)
+plt.xlabel("Distance [m]")
+plt.ylabel("Elevation [m]")
+
+ax4 = fig1.add_subplot(2, 2, 2)
+plt.xlabel("Distance [m]")
+plt.ylabel("Organic Deposition Alloch [g]")
+
 Time = time.time()  # Record start time
 for time_step in range(int(bmftc.dur)):
     # Print time step to screen
@@ -31,11 +49,20 @@ for time_step in range(int(bmftc.dur)):
     # Run time step
     bmftc.update()
 
+    # Print each time step
+    ax1.plot(bmftc.organic_dep_autoch[550 + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+    ax2.plot(bmftc.mineral_dep[550 + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+    ax3.plot(bmftc.elevation[550 + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+    ax4.plot(bmftc.organic_dep_alloch[550 + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+
 # Print elapsed time of simulation
 print()
 SimDuration = time.time() - Time
 print()
 print("Elapsed Time: ", SimDuration, "sec")
+
+plt.legend(title="Time Step")
+plt.show()
 
 # ==================================================================================================================================================================================
 # Sum major fluxes and output variables for analysis
@@ -77,19 +104,16 @@ plt.figure()
 plt.plot(organic_dep_last30yrs)
 plt.xlabel("Year (previous 30)")
 plt.ylabel("Organic Deposition [g]")
-plt.show()
 
 plt.figure()
 plt.plot(mineral_dep_last30yrs)
 plt.xlabel("Year (previous 30)")
 plt.ylabel("Mineral Deposition [g]")
-plt.show()
 
 # plt.figure()
 # plt.plot(bmftc.organic_dep_autoch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1])
 # plt.xlabel("Distance")
 # plt.ylabel("Mineral Deposition Autoch [g]")
-# plt.show()
 
 # print()
 # print("SUM ORG", np.sum(bmftc.organic_dep_autoch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1]))
@@ -99,10 +123,10 @@ plt.show()
 # plt.plot(bmftc.organic_dep_alloch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1])
 # plt.xlabel("Distance")
 # plt.ylabel("Mineral Deposition Alloch [g]")
-# plt.show()
 
 plt.figure()
 plt.plot(bmftc.elevation[bmftc.endyear - 1, :])
 plt.xlabel("Distance")
 plt.ylabel("Elevation [m MSL]")
+
 plt.show()

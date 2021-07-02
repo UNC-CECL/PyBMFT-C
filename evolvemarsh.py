@@ -109,7 +109,7 @@ def evolvemarsh(
         plt.figure()
         plt.subplot(3, 1, 1)
         plt.ion()
-        plt.plot(sedimentcycle)
+        plt.plot(np.transpose(sedimentcycle))
         plt.xlabel("Distance Across Marsh [m]")
         plt.ylabel("Mineral Sediment Deposited Per Cycle [g/cycle]")
         plt.subplot(3, 1, 2)
