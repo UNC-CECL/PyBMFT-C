@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _24 June 2021_ by _IRB Reeves_
+Last updated _4 July 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -17,10 +17,6 @@ from calcFE import calcFE
 from evolvemarsh import evolvemarsh
 from decompose import decompose
 
-
-# from .functions import (
-#     decompose,
-# )
 
 class Bmftc:
     def __init__(
@@ -179,7 +175,7 @@ class Bmftc:
         self._tidal_dt = self._P / self._numiterations  # Inundation time?
         self._OCb = np.zeros(self._endyear)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the
         # marsh. Initially set to zero.
-        self._OCb[:551] = 0.15  # IR 6/8: Appears hardwired; need to fix
+        self._OCb[:552] = 0.15  # IR 6/8: Appears hardwired; need to fix
         self._edge_flood = np.zeros(self._endyear)  # IR 6/8: Undefined variable
         self._Edge_ht = np.zeros(self._endyear)  # IR 6/24: Undefined variable
 
@@ -240,6 +236,9 @@ class Bmftc:
         # Year including spinup
         yr = self._time_index + self._startyear
 
+        print()
+        print(yr + 1)
+
         # Calculate the density of the marsh edge cell
         boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
         if boundyr == 0:
@@ -278,25 +277,83 @@ class Bmftc:
             self._dmo,
             self._rhob,
             rhom,
-            self._Fc_ODE,
-            self._C_e_ODE,
+            # self._Fc_ODE,
+            # self._C_e_ODE,
         ]
 
         # ODE solves for change in bay depth and width, Runge Kutta solver 2nd and 3rd order
-        # IR 15Jun21: Currently does not update Fc_ODE or C_e_ODE, and POOLstopp5 events not identical to Matlab
-        # Python function stores computed solution at different times (n=9) than the Matlab version (n=11), but only end value is needed
+        # IR 4July21: Not currently working!
         ode = solve_ivp(lambda t, y: funBAY(t, y, PAR, self), self._to, [self._bfo, self._db], atol=10 ** (-6), rtol=10 ** (-6), method='RK23', events=POOLstopp5)
         fetch_ODE = ode.y[0, :]
         db_ODE = ode.y[1, :]
 
-        db = db_ODE[-1]  # Set initial bay depth of the bay to final depth from funBAY
-        self._fetch[yr] = fetch_ODE[-1]  # Set initial bay width of the bay to final width from funBAY
-        self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
-        self._C_e[yr] = self._C_e_ODE[-1]
+        # Temp: for confirming that ODE solver is the problem between Matlab & Python versions (it is)
+        C_e_Matlab = [0.0113628043975502,
+                      0.0108620799017258,
+                      0.0105604632860216,
+                      0.0105466805164991,
+                      0.0100542854575426,
+                      0.0100965754705185,
+                      0.0100958262598617,
+                      0.0101334089751340,
+                      0.0101053902809638,
+                      0.0101419081258846,
+                      0.0101219152165852]
 
-        Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
+        db_Matlab = [2.57529601065286,
+                     2.57779038680615,
+                     2.57835735686093,
+                     2.57994566134334,
+                     2.58035404417616,
+                     2.58139827783044,
+                     2.58172284415567,
+                     2.58248555567742,
+                     2.58276601437979,
+                     2.58338886140066,
+                     2.58364498570985]
+
+        fetch_Matlab = [5004.43721178723,
+                        5006.10252820413,
+                        5007.77660848544,
+                        5009.45398939944,
+                        5011.13685421249,
+                        5012.82055088440,
+                        5014.50813149563,
+                        5016.19546525246,
+                        5017.88592753439,
+                        5019.57566542750,
+                        5021.26809102800]
+
+        Fc_Matlab = [0.000212179925672948,
+                     0.000133371635590304,
+                     0.000124949182830273,
+                     7.93461774858998e-05,
+                     7.67593167988355e-05,
+                     5.10302536132683e-05,
+                     5.15211330884442e-05,
+                     3.60626420996781e-05,
+                     3.81732863924777e-05,
+                     2.78162943251402e-05,
+                     3.08216790582116e-05]
+
+        db = db_Matlab[self._time_index]
+        # db = db_ODE[-1]  # Set initial bay depth of the bay to final depth from funBAY
+        self._fetch[yr] = fetch_Matlab[self._time_index]
+        # self._fetch[yr] = fetch_ODE[-1]  # Set initial bay width of the bay to final width from funBAY
+        self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
+        # self._C_e[yr] = self._C_e_ODE[-1]
+        self._C_e[yr] = C_e_Matlab[self._time_index]
+
+        Fc = Fc_Matlab[self._time_index] * 3600 * 24 * 365
+        # Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
+
+        print("Fc_ODE", self._Fc_ODE[-1])
+        print("fetch_ODE", fetch_ODE[-1])
+        print("db_ODE", db_ODE[-1])
+        print("C_e_ODE", self._C_e_ODE[-1])
+        print("C_e", self._C_e[yr])
 
         # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
         Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
@@ -392,7 +449,6 @@ class Bmftc:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
             else:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79] + self._B_rts[:, 79]
-        print()
         for x in range(self._x_f, self._B):
             if self._forestage < 80:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525]
@@ -413,15 +469,15 @@ class Bmftc:
             compaction,
             tempFd,
         ) = decompose(
-                self._x_m,
-                self._x_f,
-                yr,
-                self._organic_dep_autoch,
-                self._elevation,
-                self._B,
-                self._mui,
-                self._mki,
-                self._rhoo,
+            self._x_m,
+            self._x_f,
+            yr,
+            self._organic_dep_autoch,
+            self._elevation,
+            self._B,
+            self._mui,
+            self._mki,
+            self._rhoo,
         )
 
         self._Fd[yr] = tempFd  # [kg] Flux of organic matter out of the marsh due to decomposition
