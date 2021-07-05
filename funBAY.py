@@ -8,27 +8,48 @@ import numpy as np
 import math
 
 
-def funBAY(t, X, PAR, self):
+# def funBAY(t, X, PAR, self):
+def funBAY(t,
+           X,
+           rhos,
+           P,
+           B,
+           wsf,
+           tcr,
+           Co,
+           wind,
+           Ba,
+           Be,
+           amp,
+           RSLR,
+           Fm2,
+           lamda,
+           dist,
+           dmo,
+           rhob,
+           rhom,
+           self
+           ):
     """Determines change in bay depth and width by solving mass balance between fluxes of sediment into and out of the bay from marsh edge erosion, tidal exchange with the
     outside sediment source, and sediment deposited onto the marsh surface """
 
-    rhos = PAR[0]
-    P = PAR[1]
-    B = PAR[2]
-    wsf = PAR[3]
-    tcr = PAR[4]
-    Co = PAR[5]
-    wind = PAR[6]
-    Ba = PAR[7]
-    Be = PAR[8]
-    amp = PAR[9]
-    RSLR = PAR[10]
-    Fm2 = PAR[11]
-    lamda = PAR[12]
-    dist = PAR[13]
-    dmo = PAR[14]
-    rhob = PAR[15]
-    rhom = PAR[16]
+    # rhos = PAR[0]
+    # P = PAR[1]
+    # B = PAR[2]
+    # wsf = PAR[3]
+    # tcr = PAR[4]
+    # Co = PAR[5]
+    # wind = PAR[6]
+    # Ba = PAR[7]
+    # Be = PAR[8]
+    # amp = PAR[9]
+    # RSLR = PAR[10]
+    # Fm2 = PAR[11]
+    # lamda = PAR[12]
+    # dist = PAR[13]
+    # dmo = PAR[14]
+    # rhob = PAR[15]
+    # rhom = PAR[16]
 
     # Dynamic Variable
     fetch = X[0]  # Mudflat width
@@ -52,6 +73,9 @@ def funBAY(t, X, PAR, self):
 
     self._Fc_ODE.append(Fc * rhob * fetch)  # Save Fc as a mass flux (kg/s) for each iteration of the ODE
     self._C_e_ODE.append(Cr)  # Save C_e (SSC at marsh edge, kg/m3) for each iteration of the ODE to use in marsh model
+
+    # Fc_ODE = (Fc * rhob * fetch)  # Save Fc as a mass flux (kg/s) for each iteration of the ODE
+    # C_e_ODE = Cr
 
     dX = np.zeros([2])
     dX[0] = E  # [m2/s, or m/s if integrated over 1m transect width] Change in bay width due to erosion
@@ -81,7 +105,7 @@ def YeV(fetch, wind, h):
     delta = h * g / wind ** 2  # Dimensionless coefficient
     chi = fetch * g / wind ** 2  # Dimensionless coefficient
     epsilon = 3.64 * 10 ** (-3) * (
-                math.tanh(0.493 * delta ** 0.75) * math.tanh(3.13 * 10 ** (-3) * chi ** 0.57 / math.tanh(0.493 * delta ** 0.75))) ** 1.74  # Dimensionless coefficient
+            math.tanh(0.493 * delta ** 0.75) * math.tanh(3.13 * 10 ** (-3) * chi ** 0.57 / math.tanh(0.493 * delta ** 0.75))) ** 1.74  # Dimensionless coefficient
     ni = 0.133 * (math.tanh(0.331 * delta ** 1.01) * math.tanh(5.215 * 10 ** (-4) * chi ** 0.73 / math.tanh(0.331 * delta ** 1.01))) ** (-0.37)  # Dimensionless coefficient
     Hs = 4 * math.sqrt(wind ** 4 * epsilon / g ** 2)  # [m] Wave height
     Tp = wind / ni / g  # [s] Wave period
@@ -130,11 +154,9 @@ def waveTRNS(amp, wind, fetch, hb):
 
 
 def POOLstopp5(t, X):
-
     B = 10000 * 0.999
     isterminal = [1, 1, 1, 1]  # Stop the integration when value = 0  # IR 15Jun21: commented out because input into Python ODE solver not presently working
     direction = [0, 1, 1, 0]  # 0 = negative direction  # IR 15Jun21: commented out because input into Python ODE solver not presently working
-    value = [X[0] - 1, X[0] - B,  X[1] - 0.00, X[1] - 0.00]
+    value = [X[0] - 1, X[0] - B, X[1] - 0.00, X[1] - 0.00]
 
-    return value #, isterminal, direction
-
+    return value  # , isterminal, direction

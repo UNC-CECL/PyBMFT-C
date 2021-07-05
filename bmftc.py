@@ -277,13 +277,25 @@ class Bmftc:
             self._dmo,
             self._rhob,
             rhom,
+            self,
             # self._Fc_ODE,
             # self._C_e_ODE,
         ]
 
         # ODE solves for change in bay depth and width, Runge Kutta solver 2nd and 3rd order
         # IR 4July21: Not currently working!
-        ode = solve_ivp(lambda t, y: funBAY(t, y, PAR, self), self._to, [self._bfo, self._db], atol=10 ** (-6), rtol=10 ** (-6), method='RK23', events=POOLstopp5)
+        # ode = solve_ivp(lambda t, y: funBAY(t, y, PAR, self), self._to, [self._bfo, self._db], atol=10 ** (-6), rtol=10 ** (-6), method='RK23', events=POOLstopp5)
+        # ode = solve_ivp(lambda t, y: funBAY(y, PAR, self), self._to, [self._bfo, self._db], atol=10 ** (-6), rtol=10 ** (-6), method='RK23', events=POOLstopp5)
+
+        ode = solve_ivp(funBAY,
+                        t_span=self._to,
+                        y0=[self._bfo, self._db],
+                        atol=10 ** (-6),
+                        rtol=10 ** (-6),
+                        method='RK23',
+                        args=PAR
+                        )
+
         fetch_ODE = ode.y[0, :]
         db_ODE = ode.y[1, :]
 
