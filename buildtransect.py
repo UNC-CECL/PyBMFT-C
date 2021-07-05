@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _9 June 2021_ by _IRB Reeves_
+Last updated _5 July 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -23,18 +23,15 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
     if os.path.isdir(directory) is False:
         dfo = 2
         print("Warning: Initial conditions have not been calibrated for these parameters [0]")
-        # raise ValueError("Initial conditions have not been calibrated for these parameters")
     else:
         db_eq_dict = scipy.io.loadmat(directory + "/Equilibrium Bay Depth.mat")
         db_eq = db_eq_dict["db_eq"]
         if C / 10 > np.size(db_eq, axis=0) or R > np.size(db_eq, axis=1):
             dfo = 2
             print("Warning: Initial conditions have not been calibrated for these parameters [1]")
-            # raise ValueError("Initial conditions have not been calibrated for these parameters")
         elif C / 10 < 0.5 or R < 0.5:
             dfo = 2
             print("Warning: Initial conditions have not been calibrated for these parameters [2]")
-            # raise ValueError("Initial conditions have not been calibrated for these parameters")
         else:
             dfo = db_eq[(round(C / 10)) - 1, round(R) - 1]
 
@@ -73,20 +70,5 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
         plt.xlabel("Distance [m]")
         plt.ylabel("Elevation Relative to Initial Sea Level [m]")
         plt.show()
-
-        print("Initial Conditions:")
-        print("RSLR = ", R, " mm/yr")
-        print("Co = ", C, " kg/m")
-        print("Wind = ", wind, " m/s")
-        print("Bay Depth = ", round(100 * dfo) / 100, " m")
-        print("db = ", dfo)
-        print("Fetch = ", bfo, " m")
-        print("Platform = ", mwo, " m")
-        print("Upland Slope = ", slope)
-        print("B = ", B)
-        print("Upland Width = ", upland_width)
-        print("mwo = ", mwo)
-        print("slope = ", slope)
-        print("maxY = ", maxY)
 
     return B, dfo, elevation

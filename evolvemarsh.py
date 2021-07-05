@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _10 June 2021_ by _IRB Reeves_
+Last updated _5 July 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -15,11 +15,11 @@ def evolvemarsh(
         C_e,
         OCb,
         tr,
-        numiterations,  # Check naming
+        numiterations,
         P,
-        dt,  # Check naming
+        dt,
         ws,
-        timestep,  # Check naming
+        timestep,
         BMax,
         Dmin,
         Dmax,
@@ -77,9 +77,6 @@ def evolvemarsh(
             bgb[ii] = BMax * (dm[ii] - Dmax) * (dm[ii] - Dmin) / (0.25 * (-Dmin - Dmax) * (Dmax - 3 * Dmin))  # [g] Marsh
             organic_autoch[ii] = bgb[ii]  # [g] As mentioned above, no longer multiply by lingin content
 
-    # Marsh width only includes cells with belowground biomass
-    # marshwidth = ... doesnt appear this needs to be calculated
-
     # -------------------------
     # Mineral Deposition
 
@@ -121,9 +118,11 @@ def evolvemarsh(
         plt.ylabel("Suspended Sediment Deposition [g/yr]")
         plt.show()
 
-    mineral = susp_dep * (1 - OCb)  # [g] Mineral deposition of suspended sediment in a given year is equal determined by the organic
-    # content of the bay sediment
+    mineral = susp_dep * (1 - OCb)  # [g] Mineral deposition of suspended sediment in a given year is equal determined by the organic content of the bay sediment
     organic_alloch = susp_dep * OCb  # [g] Organic deposition of suspended sediment is equal determined by the organic content of bay sed
+
+    # -------------------------
+    # Calculations & Conversions
 
     Fm_min = np.sum(mineral) / 1000  # [kg/yr] Flux of mineral sediment from the bay
     Fm_org = np.sum(organic_alloch) / 1000  # [kg/yr] Flux of organic sediment from the bay
@@ -138,17 +137,5 @@ def evolvemarsh(
 
     # Update elevation
     marshelevation += accretion
-
-    # Debugging
-    # print()
-    # print("C_e", C_e)
-    # print("OCb", OCb)
-    # print("MIN", Fm_min)
-    # print("ORG", Fm_org)
-    # print("SUM LOI", np.sum(loi))
-    # print("SUM DENSITY", np.sum(density))
-    # print("SUM ACC", np.sum(accretion))
-    # print("SUM AUT", np.sum(organic_autoch))
-    # print("SUM ALL", np.sum(organic_alloch))
 
     return marshelevation, organic_autoch, organic_alloch, mineral, Fm_min, Fm_org, bgb, accretion, agb

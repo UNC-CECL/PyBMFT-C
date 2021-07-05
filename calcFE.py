@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _24 June 2021_ by _IRB Reeves_
+Last updated _5 July 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np

@@ -1,14 +1,13 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _15 June 2021_ by _IRB Reeves_
+Last updated _5 July 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
 import math
 
 
-# def funBAY(t, X, PAR, self):
 def funBAY(t,
            X,
            rhos,
@@ -33,25 +32,7 @@ def funBAY(t,
     """Determines change in bay depth and width by solving mass balance between fluxes of sediment into and out of the bay from marsh edge erosion, tidal exchange with the
     outside sediment source, and sediment deposited onto the marsh surface """
 
-    # rhos = PAR[0]
-    # P = PAR[1]
-    # B = PAR[2]
-    # wsf = PAR[3]
-    # tcr = PAR[4]
-    # Co = PAR[5]
-    # wind = PAR[6]
-    # Ba = PAR[7]
-    # Be = PAR[8]
-    # amp = PAR[9]
-    # RSLR = PAR[10]
-    # Fm2 = PAR[11]
-    # lamda = PAR[12]
-    # dist = PAR[13]
-    # dmo = PAR[14]
-    # rhob = PAR[15]
-    # rhom = PAR[16]
-
-    # Dynamic Variable
+    # Dynamic Variable X
     fetch = X[0]  # Mudflat width
     df = X[1]  # Mudflat depth
 
@@ -71,11 +52,9 @@ def funBAY(t,
 
     Fc = (Cr - Co) * (fac * 2 * amp) / P / rhob  # (m2/s) Net flux of sediment lost or gained through tidal exchange with external sediment supply/sink
 
+    # IR 5July21: Global variables! Could be improved by passing the information in a non-global way
     self._Fc_ODE.append(Fc * rhob * fetch)  # Save Fc as a mass flux (kg/s) for each iteration of the ODE
     self._C_e_ODE.append(Cr)  # Save C_e (SSC at marsh edge, kg/m3) for each iteration of the ODE to use in marsh model
-
-    # Fc_ODE = (Fc * rhob * fetch)  # Save Fc as a mass flux (kg/s) for each iteration of the ODE
-    # C_e_ODE = Cr
 
     dX = np.zeros([2])
     dX[0] = E  # [m2/s, or m/s if integrated over 1m transect width] Change in bay width due to erosion
