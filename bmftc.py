@@ -313,7 +313,7 @@ class Bmftc:
         self._BayMM[yr] = Fb_min  # [kg/yr] Mass of mineral sediment stored in the bay in each year
 
         if Fb_org > 0 and Fb_min > 0:
-            self._OCb[yr] = Fb_org / (Fb_org + Fb_min) + 0.15  # BIG CHANGE HERE
+            self._OCb[yr] = Fb_org / (Fb_org + Fb_min) + 0.05  # BIG CHANGE HERE
         elif Fb_org > 0:
             self._OCb[yr] = 1
         elif Fb_min > 0:
@@ -323,7 +323,7 @@ class Bmftc:
 
         # If bay has eroded down to depth below initial bay bottom, there is only mineral sediment remaining
         if self._db < self._Bay_depth[0]:
-            self._OCb[yr] = 0.15
+            self._OCb[yr] = 0.05
 
         self._rhob = 1 / ((1 - self._OCb[yr]) / self._rhos + self._OCb[yr] / self._rhoo)  # [kg/m3] Density of bay sediment
 
