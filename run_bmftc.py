@@ -4,7 +4,6 @@ PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 Last updated _5 July 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
-
 import time
 import numpy as np
 import matplotlib.pyplot as plt

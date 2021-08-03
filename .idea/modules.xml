@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../Barrier3D/.idea/Barrier3D.iml" filepath="$PROJECT_DIR$/../Barrier3D/.idea/Barrier3D.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/PyBMFT-C.iml" filepath="$PROJECT_DIR$/.idea/PyBMFT-C.iml" />
     </modules>
   </component>
