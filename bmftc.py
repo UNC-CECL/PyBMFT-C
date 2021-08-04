@@ -134,7 +134,7 @@ class Bmftc:
         self._Dmax = 0.7167 * 2 * self._amp - 0.483  # [m] Maximum depth below high water that marsh veg can grow
 
         # Load MarshStrat spin up file
-        filename_spinup = "Input/MarshStrat_all_RSLR1_CO50.mat"  # IR: Need to make easily changeable
+        filename_spinup = "Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50.mat"  # IR: Need to make easily changeable
         marsh_spinup = scipy.io.loadmat(filename_spinup)
         self._elev25 = marsh_spinup["elev_25"]  # IR 29Jun21: very slightly off from Matlab version when importing (rounding error)
         self._min_25 = marsh_spinup["min_25"]
@@ -142,7 +142,7 @@ class Bmftc:
         self._orgAT_25 = marsh_spinup["orgAT_25"]
 
         # Load Forest Organic Profile files: Look-up table with soil organic matter for forest based on age and depth
-        directory_fop = "Input/Forest_Organic_Profile"
+        directory_fop = "Input/PyBMFT-C/Forest_Organic_Profile"
         file_forestOM = scipy.io.loadmat(directory_fop + "/forestOM.mat")  # [g] Table with forest organic matter profile stored in 25 depth increments of 2.5cm (rows) for
         # forests of different ages (columns) from 1 to 80 years
         self._forestOM = file_forestOM["forestOM"]
@@ -291,8 +291,8 @@ class Bmftc:
         fetch_ODE = ode.y[0, :]
         db_ODE = ode.y[1, :]
 
-        self._db = db_ODE[-1]  # Set initial bay depth of the bay to final depth from funBAY
-        self._fetch[yr] = fetch_ODE[-1]  # Set initial bay width of the bay to final width from funBAY
+        self._db = db_ODE[-1]  # Set initial depth of the bay to final depth from funBAY
+        self._fetch[yr] = fetch_ODE[-1]  # Set initial width of the bay to final width from funBAY
         self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
         self._C_e[yr] = self._C_e_ODE[-1]
 
@@ -339,7 +339,7 @@ class Bmftc:
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
 
         if Dcells > 0:  # Prograde the marsh, with new marsh cells having the same elevation as the previous marsh edge
-            tempelevation[0: Dcells] = self._elevation[yr - 1, self._Marsh_edge[yr - 1]]
+            tempelevation[0: int(Dcells)] = self._elevation[yr - 1, int(self._Marsh_edge[yr - 1])]
             # Account for mineral and organic material deposited in new marsh cells  # IR 21Jun21: IS THIS TO-DO??
 
         self._msl[yr] = self._msl[yr - 1] + self._SLR
@@ -537,3 +537,23 @@ class Bmftc:
     @property
     def B(self):
         return self._B
+
+    @property
+    def bfo(self):
+        return self._bfo
+
+    @property
+    def startyear(self):
+        return self._startyear
+
+    @property
+    def fetch(self):
+        return self._fetch
+
+    @property
+    def Bay_depth(self):
+        return self._Bay_depth
+
+    @property
+    def RSLRi(self):
+        return self._RSLRi

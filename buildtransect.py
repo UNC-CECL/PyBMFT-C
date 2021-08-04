@@ -15,7 +15,7 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
     """Creates model domain and initial morphology of the bay, marsh, and upland slope. Marsh and bay depth are set
     to values close to equilibrium for the given sea level rise rate and suspended sediment concentration."""
 
-    directory = "Input"  # Bay depth lookup table as function of fetch & wind
+    directory = "Input/PyBMFT-C"  # Bay depth lookup table as function of fetch & wind
 
     spindur = np.size(elev_25, axis=0)
 
