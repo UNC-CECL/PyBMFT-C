@@ -557,3 +557,7 @@ class Bmftc:
     @property
     def RSLRi(self):
         return self._RSLRi
+
+    @property
+    def db(self):
+        return self._db
