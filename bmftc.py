@@ -561,3 +561,12 @@ class Bmftc:
     @property
     def db(self):
         return self._db
+
+    @property
+    def msl(self):
+        return self._msl
+
+    @property
+    def amp(self):
+        return self._amp
+
