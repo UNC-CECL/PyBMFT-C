@@ -15,9 +15,9 @@ from bmftc import Bmftc
 bmftc = Bmftc(
             name="default",
             time_step=1,
-            time_step_count=30,
+            time_step_count=150,
             relative_sea_level_rise=1,
-            reference_concentration=10,
+            reference_concentration=100,
             slope_upland=0.005,
 )
 
