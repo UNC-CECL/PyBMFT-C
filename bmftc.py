@@ -173,9 +173,8 @@ class Bmftc:
         self._fetch[:self._startyear] = self._bfo
 
         self._tidal_dt = self._P / self._numiterations  # Inundation time?
-        self._OCb = np.zeros(self._endyear)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the
-        # marsh. Initially set to zero.
-        self._OCb[:552] = 0.15  # IR 6/8: Appears hardwired; need to fix
+        self._OCb = np.zeros(self._endyear)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the marsh. Initially set to zero.
+        self._OCb[:552] = 0.05  # IR 6/8: Appears hardwired; need to fix
         self._edge_flood = np.zeros(self._endyear)  # IR 6/8: Undefined variable
         self._Edge_ht = np.zeros(self._endyear)  # IR 6/24: Undefined variable
 
@@ -315,9 +314,9 @@ class Bmftc:
         if Fb_org > 0 and Fb_min > 0:
             self._OCb[yr] = Fb_org / (Fb_org + Fb_min) + 0.05  # BIG CHANGE HERE
         elif Fb_org > 0:
-            self._OCb[yr] = 1
+            self._OCb[yr] = 1  # 100% organic
         elif Fb_min > 0:
-            self._OCb[yr] = 0
+            self._OCb[yr] = 0  # 100% mineral
         else:
             self._OCb[yr] = self._OCb[yr - 1]
 
@@ -412,6 +411,7 @@ class Bmftc:
         (
             compaction,
             tempFd,
+            self._organic_dep_autoch,
         ) = decompose(
             self._x_m,
             self._x_f,

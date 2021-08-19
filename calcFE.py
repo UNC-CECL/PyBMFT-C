@@ -26,7 +26,8 @@ def calcFE(bfoc, bfop, elevation, yr, organic_dep_autoch, organic_dep_alloch, mi
         FE_org = 0  # [g] If there is no erosion, no OM is eroded
         FE_min = 0  # [g] If there is no erosion, no MM is eroded
     elif x_m1 == x_m2:  # If actively eroding marsh edge has not changed since previous year
-        if elevation[pyr, 0] < elevation[0, x_m1]:  # If depth of erosion is below the lowest marsh deposit
+        # if elevation[pyr, 0] < elevation[0, x_m1]:  # If depth of erosion is below the lowest marsh deposit
+        if elevation[pyr, x_m1 - 1] < elevation[0, x_m1]:  # If depth of erosion is below the lowest marsh deposit
             us = elevation[0, x_m1] - elevation[yr-1, 0]  # [m] Depth of underlying stratigraphy
             usmass = us * rhos * 1000  # [g] Mass of pure mineral sediment underlying marsh at marsh edge
             FE_org = np.sum(organic_dep[0: pyr + 1, x_m1]) * E  # [g] OM eroded is equal to the total amount of OM in the eroding marsh edge (including both initial deposit and OM

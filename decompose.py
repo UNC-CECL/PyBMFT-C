@@ -33,11 +33,9 @@ def decompose(
                 decomp[tempyr] = 0
                 break
             else:
-                decomp[tempyr] = organic_dep_autoch[tempyr, x] * (mki * math.exp(-depth / mui))  # [g] Mass of organic material
-                # decomposed from a given "pocket" of sediment
-                organic_dep_autoch[tempyr, x] -= decomp[tempyr]  # [g] Autochthanous organic material in a
-                # given "pocket" of sediment updated for deomposition
+                decomp[tempyr] = organic_dep_autoch[tempyr, x] * (mki * math.exp(-depth / mui))  # [g] Mass of organic material decomposed from a given "pocket" of sediment
+                organic_dep_autoch[tempyr, x] -= decomp[tempyr]  # [g] Autochthanous organic material in a given "pocket" of sediment updated for deomposition
         compaction[x] = np.sum(decomp) / 1000 / rhoo  # [m] Total compaction in a given cell is a result of the sum of all decomposition in that cell
         Fd += np.sum(decomp)  # [kg] Flux of organic matter out of the marsh due to decomposition
 
-    return compaction, Fd
+    return compaction, Fd, organic_dep_autoch
