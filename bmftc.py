@@ -16,6 +16,7 @@ from funBAY import POOLstopp5
 from calcFE import calcFE
 from evolvemarsh import evolvemarsh
 from decompose import decompose
+from growseagrass import growseagrass
 
 
 class Bmftc:
@@ -65,6 +66,9 @@ class Bmftc:
             unknown_fm_org=0,
             unknown_fm_flood=0,
             sed_flux_pond=0,
+
+            # Seagrass
+            seagrass_on=True,
 
     ):
         """Bay-Marsh-Forest Transect Carbon Model (Python version)
@@ -143,12 +147,10 @@ class Bmftc:
 
         # Load Forest Organic Profile files: Look-up table with soil organic matter for forest based on age and depth
         directory_fop = "Input/PyBMFT-C/Forest_Organic_Profile"
-        file_forestOM = scipy.io.loadmat(directory_fop + "/forestOM.mat")  # [g] Table with forest organic matter profile stored in 25 depth increments of 2.5cm (rows) for
-        # forests of different ages (columns) from 1 to 80 years
+        file_forestOM = scipy.io.loadmat(directory_fop + "/forestOM.mat")  # [g] Table with forest organic matter profile stored in 25 depth increments of 2.5cm (rows) for forests of different ages (columns) from 1 to 80 years
         self._forestOM = file_forestOM["forestOM"]
-        file_forestMIN = scipy.io.loadmat(directory_fop + "/forestMIN.mat")  # [g] Table with forest mineral matter profile stored in 25 depth increments of 2.5cm (rows) for
+        file_forestMIN = scipy.io.loadmat(directory_fop + "/forestMIN.mat")  # [g] Table with forest mineral matter profile stored in 25 depth increments of 2.5cm (rows) for forests of different ages (columns) from 1 to 80 years
         self._forestMIN = file_forestMIN["forestMIN"]
-        # forests of different ages (columns) from 1 to 80 years
         file_B_rts = scipy.io.loadmat(directory_fop + "/B_rts.mat")
         self._B_rts = file_B_rts["B_rts"]
 
@@ -178,17 +180,14 @@ class Bmftc:
         self._edge_flood = np.zeros(self._endyear)  # IR 6/8: Undefined variable
         self._Edge_ht = np.zeros(self._endyear)  # IR 6/24: Undefined variable
 
-        self._marshOM_initial = (np.sum(np.sum(self._orgAL_25)) + np.sum(np.sum(self._orgAT_25))) / 1000  # [kg] Total mass of organic matter in the marsh at the beginning of
-        # the simulation (both alloch and autoch)
+        self._marshOM_initial = (np.sum(np.sum(self._orgAL_25)) + np.sum(np.sum(self._orgAT_25))) / 1000  # [kg] Total mass of organic matter in the marsh at the beginning of the simulation (both alloch and autoch)
         self._marshMM_initial = np.sum(np.sum(self._min_25)) / 1000  # [kg] Total mass of mineral matter in the marsh at the beginning of the simulation
         self._marshLOI_initial = self._marshOM_initial / (self._marshOM_initial + self._marshMM_initial) * 100  # [%] LOI of the initial marsh deposit
         self._marshOCP_initial = 0.4 * self._marshLOI_initial + 0.0025 * self._marshLOI_initial ** 2  # [%] Organic carbon content from Craft et al. (1991)
-        self._marshOC_initial = self._marshOCP_initial / 100 * (self._marshOM_initial + self._marshMM_initial)  # [kg] Organic carbon deposited in the marsh over the past 25 (?
-        # 30?) years
+        self._marshOC_initial = self._marshOCP_initial / 100 * (self._marshOM_initial + self._marshMM_initial)  # [kg] Organic carbon deposited in the marsh over the past 25 (?30?) years
 
         # Build starting transect
-        self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear,
-                                                           plot=False)
+        self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, plot=False)
 
         # Set up vectors for deposition
         self._organic_dep_alloch = np.zeros([self._endyear, self._B])
@@ -197,6 +196,11 @@ class Bmftc:
         self._organic_dep_alloch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAL_25  # Set the first 25[?] years to be the spin up values for deposition
         self._organic_dep_autoch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAT_25
         self._mineral_dep[:self._startyear, self._x_m: self._x_m + self._mwo] = self._min_25
+
+        # Initialize seagrass
+        self._seagrass_on = seagrass_on  # Boolean controls whether seagrass is turned on or off
+        self._seagrass = np.zeros([self._endyear, self._B])  # Stores shoot density of seagrass in each cell for each year
+        self._seagrass_density_table = np.load("Input/PyBMFT-C/seagrass_density_table.npy")
 
         # Set options for ODE solver
         POOLstopp5.terminal = True
@@ -254,6 +258,18 @@ class Bmftc:
 
         Fm = (self._Fm_min + self._Fm_org) / (3600 * 24 * 365)  # [kg/s] Mass flux of both mineral and organic sediment from the bay to the marsh
 
+        # Grow seagrass
+        if self._seagrass_on:
+            self._seagrass = growseagrass(
+                self._seagrass,
+                self._seagrass_density_table,
+                self._elevation,
+                self._x_m,
+                self._msl,
+                self._amp,
+                yr,
+            )
+
         # Parameters to feed into ODE
         PAR = [
             self._rhos,
@@ -273,6 +289,8 @@ class Bmftc:
             self._dmo,
             self._rhob,
             rhom,
+            self._seagrass_on,
+            self._seagrass,
             self,
         ]
 
@@ -481,11 +499,11 @@ class Bmftc:
             self._edge_flood[self._endyear + 1:] = []  # ?
             return  # Exit program
 
-        if self._db < 0.3:  # Condition for if the bay gets very shallow. Should this number be calculated within the code?
-            print("Bay has filled in to form marsh.")
-            self._endyear = yr
-            self._edge_flood[self._endyear + 1:] = []  # ?
-            return  # Exit program
+        # if self._db < 0.3:  # Condition for if the bay gets very shallow. Should this number be calculated within the code?
+        #     print("Bay has filled in to form marsh.")
+        #     self._endyear = yr
+        #     # self._edge_flood[self._endyear + 1:] = []  # ERROR HERE
+        #     return  # Exit program
 
         self._fetch[yr] = self._bfo  # Save change in bay fetch through time
 
@@ -569,4 +587,8 @@ class Bmftc:
     @property
     def amp(self):
         return self._amp
+
+    @property
+    def seagrass(self):
+        return self._seagrass
 

@@ -15,10 +15,13 @@ from bmftc import Bmftc
 bmftc = Bmftc(
             name="default",
             time_step=1,
-            time_step_count=30,
+            time_step_count=50,
             relative_sea_level_rise=1,
-            reference_concentration=100,
+            reference_concentration=50,
             slope_upland=0.005,
+            bay_fetch_initial=2500,
+            wind_speed=4.5,
+            seagrass_on=True,
 )
 
 # ==================================================================================================================================================================================
@@ -67,7 +70,7 @@ print()
 print("Elapsed Time: ", SimDuration, "sec")
 
 # Show figure(s)
-plt.show()
+# plt.show()
 
 
 # ==================================================================================================================================================================================
@@ -125,5 +128,15 @@ plt.figure()
 plt.plot(bmftc.elevation[bmftc.endyear - 1, :])
 plt.xlabel("Distance")
 plt.ylabel("Elevation [m MSL]")
+
+plt.figure()
+plt.plot(bmftc.Bay_depth[bmftc.startyear:] * -1)
+plt.xlabel("Year")
+plt.ylabel("Bay Depth [m MSL]")
+
+plt.figure()
+plt.plot(bmftc.seagrass[bmftc.startyear: , 1])
+plt.xlabel("Year")
+plt.ylabel("Shoot Density [shoots/m^2]")
 
 plt.show()

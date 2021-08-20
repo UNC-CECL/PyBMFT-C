@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _5 July 2021_ by _IRB Reeves_
+Last updated _19 August 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -27,10 +27,25 @@ def funBAY(t,
            dmo,
            rhob,
            rhom,
+           seagrass_on,
+           seagrass,
            self
            ):
     """Determines change in bay depth and width by solving mass balance between fluxes of sediment into and out of the bay from marsh edge erosion, tidal exchange with the
     outside sediment source, and sediment deposited onto the marsh surface """
+
+    # TEMP SEAGRASS
+    seagrass_max_density = 667  # [shoots/m] Maximum shoot density a cell can achieve
+    seagrass_meadow_width = np.count_nonzero(seagrass)  # [m] Width of seagrass meadow
+    if seagrass_meadow_width == 0:
+        max_density_pct = 0
+    else:
+        seagrass_meadow_density = np.sum(seagrass) / seagrass_meadow_width  # Average shoot density of seagrass meadow
+        max_density_pct = seagrass_meadow_density / seagrass_max_density  # Percent of max shoot density
+
+    max_decay_coeff = 0.01  # Maximum wave decay coefficient
+    effective_decay_coeff = max_decay_coeff * max_density_pct  # Effective way decay coefficient (after adjusting for seagrass meadows with shoot density below maximum); decay coeff varies roughly +1:1 with shoot density (e.g. Manca et al., 2012)
+    max_attenuation_pct = 0.3  # [%]  Maximum percent of wave height that can be attenuated
 
     # Dynamic Variable X
     fetch = X[0]  # Mudflat width
@@ -40,13 +55,13 @@ def funBAY(t,
     Df = (df + (df - fac * 2 * amp)) / 2  # [m] Average bay depth over tidal cycle
     dm = dmo  # [m] Marsh edge depth
 
-    tw = wavetau(fetch, wind, Df)  # Calculates wave bed shear stress [Pa]
+    tw = wavetau(fetch, wind, Df, seagrass_on, effective_decay_coeff, seagrass_meadow_width, max_attenuation_pct)  # Calculates wave bed shear stress [Pa]
 
     tau = max((tw - tcr) / tcr, 0) * lamda  # Excess shear stress, dimensionless
     Cr = rhos * tau / (1 + tau)  # Reference suspended sediment concentration in the basin [kg/m3]
 
     hb = dm + (df - dm) * (1 - math.exp(-dist * 0.1 / df))  # [m] scarp height at a fix  d distance from the marsh according to semi-empirical shoaling profile
-    W = waveTRNS(amp, wind, fetch, hb)  # [W] Wave power density at the marsh boundary
+    W = waveTRNS(amp, wind, fetch, hb, seagrass_on, effective_decay_coeff, seagrass_meadow_width, max_attenuation_pct)  # [W] Wave power density at the marsh boundary
 
     E = (Be * W / (hb - dm) - Ba * Cr * wsf / rhom)  # (m2/s) Net flux of sediment eroded from/deposited to the marsh edge
 
@@ -63,10 +78,10 @@ def funBAY(t,
     return dX
 
 
-def wavetau(fetch, wind, Df):
+def wavetau(fetch, wind, Df, seagrass_on, effective_decay_coeff, seagrass_meadow_width, max_attenuation_pct):
     """Calculates wave bed shear stress, as a function of fetch, wind speed, and bay depth. From Mariotti and Fagherazzi (2013)."""
 
-    (Hs, Tp) = YeV(fetch, wind, Df)  # Significant wave height (Hs, [m]) and wave period (Tp, [m])
+    (Hs, Tp) = YeV(fetch, wind, Df, seagrass_on, effective_decay_coeff, seagrass_meadow_width, max_attenuation_pct)  # Significant wave height (Hs, [m]) and wave period (Tp, [m])
     kk = wavek(1 / Tp, Df)  # Calculates wave number [m^-1]
     Um = math.pi * Hs / Tp / math.sinh(kk * Df)  # Term in equation for shear stress [m/s]
     aw = Tp * Um / (2 * math.pi)  # Term in equation for shear stress[m]
@@ -77,8 +92,8 @@ def wavetau(fetch, wind, Df):
     return tw
 
 
-def YeV(fetch, wind, h):
-    """Calculates wave height (Hs) and period (Tp) for a given fetch, wind speed, and depth; based on a set of semi-empirical equations from Young and Verhagen (1996)"""
+def YeV(fetch, wind, h, seagrass_on, effective_decay_coeff, seagrass_meadow_width, max_attenuation_pct):
+    """Calculates wave height (Hs) and period (Tp) for a given fetch, wind speed, and depth; based on a set of semi-empirical equations from Young and Verhagen (1996). Modified for eefect of seagrass. """
 
     g = 9.8  # [m/s2] Acceleration due to gravity
     delta = h * g / wind ** 2  # Dimensionless coefficient
@@ -86,8 +101,17 @@ def YeV(fetch, wind, h):
     epsilon = 3.64 * 10 ** (-3) * (
             math.tanh(0.493 * delta ** 0.75) * math.tanh(3.13 * 10 ** (-3) * chi ** 0.57 / math.tanh(0.493 * delta ** 0.75))) ** 1.74  # Dimensionless coefficient
     ni = 0.133 * (math.tanh(0.331 * delta ** 1.01) * math.tanh(5.215 * 10 ** (-4) * chi ** 0.73 / math.tanh(0.331 * delta ** 1.01))) ** (-0.37)  # Dimensionless coefficient
-    Hs = 4 * math.sqrt(wind ** 4 * epsilon / g ** 2)  # [m] Wave height
     Tp = wind / ni / g  # [s] Wave period
+    Hs = 4 * math.sqrt(wind ** 4 * epsilon / g ** 2)  # [m] Wave height (without seagrass attenuation)
+    if seagrass_on and seagrass_meadow_width > 0:
+        tempold = Hs
+        min_Hs = Hs * (1 - max_attenuation_pct)  # Minimum wave weight allowed, prevents wave height from approaching zero
+        effective_Hs = Hs * math.exp(-effective_decay_coeff * seagrass_meadow_width)  # Seagrass wave height attenuation
+        if effective_Hs > min_Hs:
+            Hs = effective_Hs
+        else:  # Enforce minimum wave height
+            Hs = min_Hs
+        print("Attenuation Diff:", tempold - Hs)
 
     return Hs, Tp
 
@@ -118,13 +142,13 @@ def wavek(F, H):
     return K
 
 
-def waveTRNS(amp, wind, fetch, hb):
+def waveTRNS(amp, wind, fetch, hb, seagrass_on, effective_decay_coeff, seagrass_meadow_width, max_attenuation_pct):
     """Calculates wave power density at marsh boundary. From Mariotti and Carr (2014)."""
 
     depth = hb  # Scarp height
     fac = min(1, depth / (2 * amp))  # Proportion of tide that the bay is flooded, dimensionless
     D = (depth + (depth - fac * 2 * amp)) / 2  # [m] average bay depth over tidal cycle
-    (Hs, Tp) = YeV(fetch, wind, D)  # Solves for wave height (Hs, [m]) and wave period (Tp, [s])
+    (Hs, Tp) = YeV(fetch, wind, D, seagrass_on, effective_decay_coeff, seagrass_meadow_width, max_attenuation_pct)  # Solves for wave height (Hs, [m]) and wave period (Tp, [s])
     kk = wavek(1 / Tp, D)  # Solves for wave number [m^-1]
     cg = 2 * math.pi / kk / Tp * 0.5 * (1 + 2 * kk * D / (math.sinh(2 * kk * D)))  # Wave group celerity at marsh edge [m/s]
     W = cg * 9800 / 16 * abs(Hs) ** 2  # [W] Wave power density at the marsh boundary
