@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _5 July 2021_ by _IRB Reeves_
+Last updated _20 August 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import time
@@ -19,8 +19,8 @@ bmftc = Bmftc(
             relative_sea_level_rise=1,
             reference_concentration=50,
             slope_upland=0.005,
-            bay_fetch_initial=2500,
-            wind_speed=4.5,
+            bay_fetch_initial=3000,
+            wind_speed=4,
             seagrass_on=True,
 )
 
@@ -68,9 +68,6 @@ print()
 SimDuration = time.time() - Time
 print()
 print("Elapsed Time: ", SimDuration, "sec")
-
-# Show figure(s)
-# plt.show()
 
 
 # ==================================================================================================================================================================================
@@ -129,12 +126,18 @@ plt.plot(bmftc.elevation[bmftc.endyear - 1, :])
 plt.xlabel("Distance")
 plt.ylabel("Elevation [m MSL]")
 
+# Seagrass: bay depth and shoot density
 plt.figure()
+fig = plt.gcf()
+fig.set_size_inches(12, 14)
+plt.rcParams.update({"font.size": 12})
+
+plt.subplot(2,1,1)
 plt.plot(bmftc.Bay_depth[bmftc.startyear:] * -1)
 plt.xlabel("Year")
 plt.ylabel("Bay Depth [m MSL]")
 
-plt.figure()
+plt.subplot(2,1,2)
 plt.plot(bmftc.seagrass[bmftc.startyear: , 1])
 plt.xlabel("Year")
 plt.ylabel("Shoot Density [shoots/m^2]")

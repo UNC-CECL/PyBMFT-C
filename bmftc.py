@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _5 July 2021_ by _IRB Reeves_
+Last updated _20 August 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -165,7 +165,8 @@ class Bmftc:
         self._to = np.linspace(0, 3600 * 24 * 365 * 1, 2)
         self._timestep = 365 * (24 / 12.5)  # [tidal cycles per year] number to multiply accretion simulated over a tidal cycle by
 
-        # Initialize marsh and forest edge variables
+        # Initialize bay, marsh, and forest edge variables
+        self._x_b = 0  # First bay cell
         self._x_m = math.ceil(self._bfo)  # First marsh cell
         self._x_f = None  # First forest cell
         self._Marsh_edge = np.zeros([self._endyear])
@@ -349,7 +350,7 @@ class Bmftc:
             self._endyear = yr
             return  # Exit program
 
-        self._x_m = math.ceil(self._bfo)  # New first marsh cell
+        self._x_m = math.ceil(self._bfo) + self._x_b  # New first marsh cell
         self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
 
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
@@ -581,6 +582,10 @@ class Bmftc:
         return self._db
 
     @property
+    def x_b(self):
+        return self._x_b
+
+    @property
     def msl(self):
         return self._msl
 
@@ -591,4 +596,3 @@ class Bmftc:
     @property
     def seagrass(self):
         return self._seagrass
-

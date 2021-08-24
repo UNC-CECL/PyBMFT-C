@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _19 August 2021_ by _IRB Reeves_
+Last updated _20 August 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -34,7 +34,7 @@ def funBAY(t,
     """Determines change in bay depth and width by solving mass balance between fluxes of sediment into and out of the bay from marsh edge erosion, tidal exchange with the
     outside sediment source, and sediment deposited onto the marsh surface """
 
-    # TEMP SEAGRASS
+    # TEMP SEAGRASS; to do: move variables to main file
     seagrass_max_density = 667  # [shoots/m] Maximum shoot density a cell can achieve
     seagrass_meadow_width = np.count_nonzero(seagrass)  # [m] Width of seagrass meadow
     if seagrass_meadow_width == 0:
@@ -42,7 +42,6 @@ def funBAY(t,
     else:
         seagrass_meadow_density = np.sum(seagrass) / seagrass_meadow_width  # Average shoot density of seagrass meadow
         max_density_pct = seagrass_meadow_density / seagrass_max_density  # Percent of max shoot density
-
     max_decay_coeff = 0.01  # Maximum wave decay coefficient
     effective_decay_coeff = max_decay_coeff * max_density_pct  # Effective way decay coefficient (after adjusting for seagrass meadows with shoot density below maximum); decay coeff varies roughly +1:1 with shoot density (e.g. Manca et al., 2012)
     max_attenuation_pct = 0.3  # [%]  Maximum percent of wave height that can be attenuated
@@ -104,14 +103,12 @@ def YeV(fetch, wind, h, seagrass_on, effective_decay_coeff, seagrass_meadow_widt
     Tp = wind / ni / g  # [s] Wave period
     Hs = 4 * math.sqrt(wind ** 4 * epsilon / g ** 2)  # [m] Wave height (without seagrass attenuation)
     if seagrass_on and seagrass_meadow_width > 0:
-        tempold = Hs
         min_Hs = Hs * (1 - max_attenuation_pct)  # Minimum wave weight allowed, prevents wave height from approaching zero
         effective_Hs = Hs * math.exp(-effective_decay_coeff * seagrass_meadow_width)  # Seagrass wave height attenuation
         if effective_Hs > min_Hs:
             Hs = effective_Hs
         else:  # Enforce minimum wave height
             Hs = min_Hs
-        print("Attenuation Diff:", tempold - Hs)
 
     return Hs, Tp
 
