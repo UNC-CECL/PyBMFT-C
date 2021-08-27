@@ -32,6 +32,7 @@ class Bmftc:
             marsh_width_initial=1000,
             bay_fetch_initial=5000,
             forest_age_initial=60,
+            filename_marshspinup="Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50.mat",
 
             # KV Organic
             bulk_density_mineral=2000,
@@ -138,8 +139,7 @@ class Bmftc:
         self._Dmax = 0.7167 * 2 * self._amp - 0.483  # [m] Maximum depth below high water that marsh veg can grow
 
         # Load MarshStrat spin up file
-        filename_spinup = "Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50.mat"  # IR: Need to make easily changeable
-        marsh_spinup = scipy.io.loadmat(filename_spinup)
+        marsh_spinup = scipy.io.loadmat(filename_marshspinup)
         self._elev25 = marsh_spinup["elev_25"]  # IR 29Jun21: very slightly off from Matlab version when importing (rounding error)
         self._min_25 = marsh_spinup["min_25"]
         self._orgAL_25 = marsh_spinup["orgAL_25"]
@@ -177,7 +177,7 @@ class Bmftc:
 
         self._tidal_dt = self._P / self._numiterations  # Inundation time?
         self._OCb = np.zeros(self._endyear)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the marsh. Initially set to zero.
-        self._OCb[:552] = 0.05  # IR 6/8: Appears hardwired; need to fix
+        self._OCb[:self._endyear + 1] = 0.05
         self._edge_flood = np.zeros(self._endyear)  # IR 6/8: Undefined variable
         self._Edge_ht = np.zeros(self._endyear)  # IR 6/24: Undefined variable
 
@@ -405,16 +405,17 @@ class Bmftc:
         self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
 
         # Update forest soil organic matter
+        spinlast25 = self._startyear - 25
         self._forestage += 1  # Age the forest
         for x in range(int(self._Forest_edge[yr - 1]), self._x_f + 1):
             if self._forestage < 80:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525] + self._B_rts[:, yr - 525]
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - spinlast25] + self._B_rts[:, yr - spinlast25]
             else:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79] + self._B_rts[:, 79]
         for x in range(self._x_f, self._B):
             if self._forestage < 80:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - 525]
-                self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - 525]
+                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - spinlast25]
+                self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - spinlast25]
             else:
                 self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79]
                 self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, 79]
@@ -596,3 +597,7 @@ class Bmftc:
     @property
     def seagrass(self):
         return self._seagrass
+
+    @property
+    def Marsh_edge(self):
+        return self._Marsh_edge

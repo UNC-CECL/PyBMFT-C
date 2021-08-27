@@ -7,8 +7,11 @@ Last updated _20 August 2021_ by _IRB Reeves_
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import warnings
 
 from bmftc import Bmftc
+
+warnings.filterwarnings("ignore")
 
 # ==================================================================================================================================================================================
 # Create an instance of the BMI class
@@ -16,12 +19,14 @@ bmftc = Bmftc(
             name="default",
             time_step=1,
             time_step_count=50,
-            relative_sea_level_rise=1,
+            relative_sea_level_rise=3,
             reference_concentration=50,
             slope_upland=0.005,
             bay_fetch_initial=3000,
-            wind_speed=4,
+            wind_speed=5,
             seagrass_on=True,
+            critical_shear_mudflat=0.2,
+            filename_marshspinup="Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50.mat",
 )
 
 # ==================================================================================================================================================================================
@@ -58,10 +63,10 @@ for time_step in range(int(bmftc.dur)):
     bmftc.update()
 
     # Plot each time step
-    ax1.plot(bmftc.organic_dep_autoch[550 + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
-    ax2.plot(bmftc.mineral_dep[550 + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
-    ax3.plot(bmftc.elevation[550 + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
-    ax4.plot(bmftc.organic_dep_alloch[550 + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+    ax1.plot(bmftc.organic_dep_autoch[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+    ax2.plot(bmftc.mineral_dep[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+    ax3.plot(bmftc.elevation[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+    ax4.plot(bmftc.organic_dep_alloch[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
 
 # Print elapsed time of simulation
 print()
@@ -132,14 +137,19 @@ fig = plt.gcf()
 fig.set_size_inches(12, 14)
 plt.rcParams.update({"font.size": 12})
 
-plt.subplot(2,1,1)
+plt.subplot(3,1,1)
 plt.plot(bmftc.Bay_depth[bmftc.startyear:] * -1)
 plt.xlabel("Year")
 plt.ylabel("Bay Depth [m MSL]")
 
-plt.subplot(2,1,2)
+plt.subplot(3,1,2)
 plt.plot(bmftc.seagrass[bmftc.startyear: , 1])
 plt.xlabel("Year")
 plt.ylabel("Shoot Density [shoots/m^2]")
+
+plt.subplot(3,1,3)
+plt.plot(bmftc.Marsh_edge[bmftc.startyear:])
+plt.xlabel("Year")
+plt.ylabel("Marsh Edge Location [m cross-shore]")
 
 plt.show()

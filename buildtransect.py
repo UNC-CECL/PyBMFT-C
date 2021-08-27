@@ -39,7 +39,7 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
 
     maxY = R / 1000 * endyear + amp + 0.5  # Maximum sea-level excursion
     max_potentialwidth = math.ceil(maxY / slope)
-    upland_width = math.ceil(maxY / slope)
+    upland_width = int(math.ceil(maxY / slope))
 
     if max_potentialwidth > upland_width:
         raise ValueError("Slope/sea-level rise conditions are such that the model domain is too small for the "
