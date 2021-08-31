@@ -291,7 +291,7 @@ class Bmftc:
             self._rhob,
             rhom,
             self._seagrass_on,
-            self._seagrass,
+            self._seagrass[yr, :],
             self,
         ]
 

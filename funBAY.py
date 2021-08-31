@@ -40,11 +40,11 @@ def funBAY(t,
     if seagrass_meadow_width == 0:
         max_density_pct = 0
     else:
-        seagrass_meadow_density = np.sum(seagrass) / seagrass_meadow_width  # Average shoot density of seagrass meadow
+        seagrass_meadow_density = np.mean(seagrass[seagrass > 0])  # Average shoot density of seagrass meadow
         max_density_pct = seagrass_meadow_density / seagrass_max_density  # Percent of max shoot density
     max_decay_coeff = 0.01  # Maximum wave decay coefficient
     effective_decay_coeff = max_decay_coeff * max_density_pct  # Effective way decay coefficient (after adjusting for seagrass meadows with shoot density below maximum); decay coeff varies roughly +1:1 with shoot density (e.g. Manca et al., 2012)
-    max_attenuation_pct = 0.5  # [%]  Maximum percent of wave height that can be attenuated - 45-70% from Hansen & Reidenbach (2012)
+    max_attenuation_pct = 0.45  # [%]  Maximum percent of wave height that can be attenuated - 45-70% from Hansen & Reidenbach (2012)
 
     # Dynamic Variable X
     fetch = X[0]  # Mudflat width
