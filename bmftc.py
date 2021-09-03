@@ -240,6 +240,9 @@ class Bmftc:
         # Year including spinup
         yr = self._time_index + self._startyear
 
+        # Find first marsh cell x-location
+        self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)
+
         # Calculate the density of the marsh edge cell
         boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
         if boundyr == 0:
@@ -314,6 +317,9 @@ class Bmftc:
         self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
         self._C_e[yr] = self._C_e_ODE[-1]
 
+        print()
+        print("bfo:", self._bfo)
+
         Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
@@ -350,8 +356,10 @@ class Bmftc:
             self._endyear = yr
             return  # Exit program
 
-        self._x_m = math.ceil(self._bfo) + self._x_b  # New first marsh cell
+        self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
         self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
+
+        print("x_b:", self._x_b)
 
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
