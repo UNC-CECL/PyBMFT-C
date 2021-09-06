@@ -60,6 +60,7 @@ class Bmftc:
             forest_aboveground_unknown_fgrow=2,
             zero_decomposition_depth_marsh=0.4,
             decomposition_coefficient_marsh=0.1,
+            forest_on=True,
 
             # Bay/marsh
             tidal_iterations=500,
@@ -174,6 +175,7 @@ class Bmftc:
         self._Forest_edge = np.zeros(self._endyear)
         self._fetch = np.zeros([self._endyear])
         self._fetch[:self._startyear] = self._bfo
+        self._forest_on = forest_on  # Boolean controls whether forest organic deposition/decomposition occurs
 
         self._tidal_dt = self._P / self._numiterations  # Inundation time?
         self._OCb = np.zeros(self._endyear)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the marsh. Initially set to zero.
@@ -241,7 +243,7 @@ class Bmftc:
         yr = self._time_index + self._startyear
 
         # Find first marsh cell x-location
-        self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)
+        self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
 
         # Calculate the density of the marsh edge cell
         boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
@@ -317,9 +319,6 @@ class Bmftc:
         self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
         self._C_e[yr] = self._C_e_ODE[-1]
 
-        print()
-        print("bfo:", self._bfo)
-
         Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
@@ -358,8 +357,6 @@ class Bmftc:
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
         self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
-
-        print("x_b:", self._x_b)
 
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
@@ -412,29 +409,30 @@ class Bmftc:
         avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
         self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
 
-        # Update forest soil organic matter
-        spinlast25 = self._startyear - 25
-        self._forestage += 1  # Age the forest
-        for x in range(int(self._Forest_edge[yr - 1]), self._x_f + 1):
-            if self._forestage < 80:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - spinlast25] + self._B_rts[:, yr - spinlast25]
-            else:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79] + self._B_rts[:, 79]
-        for x in range(self._x_f, self._B):
-            if self._forestage < 80:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - spinlast25]
-                self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - spinlast25]
-            else:
-                self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79]
-                self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, 79]
+        if self._forest_on:
+            # Update forest soil organic matter
+            spinlast25 = self._startyear - 25
+            self._forestage += 1  # Age the forest
+            for x in range(int(self._Forest_edge[yr - 1]), self._x_f + 1):
+                if self._forestage < 80:
+                    self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - spinlast25] + self._B_rts[:, yr - spinlast25]
+                else:
+                    self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79] + self._B_rts[:, 79]
+            for x in range(self._x_f, self._B):
+                if self._forestage < 80:
+                    self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, yr - spinlast25]
+                    self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, yr - spinlast25]
+                else:
+                    self._organic_dep_autoch[self._startyear - 25: self._startyear, x] = self._forestOM[:, 79]
+                    self._mineral_dep[self._startyear - 25: self._startyear, x] = self._forestMIN[:, 79]
 
-        df = -self._msl[yr] + self._elevation[yr, self._x_f: self._B]
+            df = -self._msl[yr] + self._elevation[yr, self._x_f: self._B]
 
-        self._organic_dep_autoch[yr, self._x_f: self._B] = self._f0 + self._fwet * np.exp(-self._fgrow * df)
-        self._mineral_dep[yr, self._x_f: self._B] = self._forestMIN[0, 79]
+            self._organic_dep_autoch[yr, self._x_f: self._B] = self._f0 + self._fwet * np.exp(-self._fgrow * df)
+            self._mineral_dep[yr, self._x_f: self._B] = self._forestMIN[0, 79]
 
-        # Update forest aboveground biomass
-        self._aboveground_forest[yr, self._x_f: self._B] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
+            # Update forest aboveground biomass
+            self._aboveground_forest[yr, self._x_f: self._B] = self._Bmax_forest / (1 + self._a * np.exp(-self._b * df))
 
         (
             compaction,
@@ -609,3 +607,28 @@ class Bmftc:
     @property
     def Marsh_edge(self):
         return self._Marsh_edge
+
+    @property
+    def tcr(self):
+        return self._tcr
+
+    @property
+    def slope(self):
+        return self._slope
+
+    @property
+    def Co(self):
+        return self._Co
+
+    @property
+    def mwo(self):
+        return self._mwo
+
+    @property
+    def wind(self):
+        return self._wind
+
+    @property
+    def seagrass_on(self):
+        return self._seagrass_on
+
