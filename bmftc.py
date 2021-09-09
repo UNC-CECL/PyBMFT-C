@@ -9,6 +9,7 @@ import scipy.io
 from scipy.integrate import solve_ivp
 import math
 import bisect
+import matplotlib.pyplot as plt
 
 from buildtransect import buildtransect
 from funBAY import funBAY
@@ -169,7 +170,6 @@ class Bmftc:
         # Initialize bay, marsh, and forest edge variables
         self._x_b = 0  # First bay cell
         self._x_m = math.ceil(self._bfo)  # First marsh cell
-        self._x_f = None  # First forest cell
         self._Marsh_edge = np.zeros([self._endyear])
         self._Marsh_edge[:self._startyear] = self._x_m
         self._Forest_edge = np.zeros(self._endyear)
@@ -191,6 +191,9 @@ class Bmftc:
 
         # Build starting transect
         self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, plot=False)
+
+        # Find first forest cell x-location
+        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin)   # First forest cell
 
         # Set up vectors for deposition
         self._organic_dep_alloch = np.zeros([self._endyear, self._B])
@@ -241,6 +244,11 @@ class Bmftc:
 
         # Year including spinup
         yr = self._time_index + self._startyear
+
+        if yr == 551 or yr == 561 or yr == 571:
+            plt.figure()
+            plt.plot(self.elevation[yr - 1, :])
+            plt.title("IN")
 
         # Find first marsh cell x-location
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
