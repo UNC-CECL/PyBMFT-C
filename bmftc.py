@@ -245,11 +245,6 @@ class Bmftc:
         # Year including spinup
         yr = self._time_index + self._startyear
 
-        if yr == 551 or yr == 561 or yr == 571:
-            plt.figure()
-            plt.plot(self.elevation[yr - 1, :])
-            plt.title("IN")
-
         # Find first marsh cell x-location
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
 
