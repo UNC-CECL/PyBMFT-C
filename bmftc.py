@@ -635,3 +635,7 @@ class Bmftc:
     def seagrass_on(self):
         return self._seagrass_on
 
+    @property
+    def Forest_edge(self):
+        return self._Forest_edge
+
