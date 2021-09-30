@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _20 August 2021_ by _IRB Reeves_
+Last updated _30 September 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -327,7 +327,7 @@ class Bmftc:
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
 
         # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
-        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
+        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b)
         Fe_org /= 1000  # [kg/yr] Annual net flux of organic sediment to the bay due to erosion
         Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
 
@@ -360,7 +360,6 @@ class Bmftc:
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
         self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
-
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
 
@@ -403,7 +402,7 @@ class Bmftc:
 
         self._elevation[yr, self._x_m: self._x_f + 1] = tempelevation  # [m] Set new elevation to current year
         self._elevation[yr, self._x_f + 1: self._B] = self._elevation[yr - 1, self._x_f + 1: self._B]  # Forest elevation remains unchanged
-        self._mineral_dep[yr, self._x_m: self._x_f + 1] = tempmin  # [g] Mineral sediment deposited in a given year
+        self._mineral_dep[yr, self._x_m: self._x_f + 1] += tempmin  # [g] Mineral sediment deposited in a given year
         self._organic_dep_autoch[yr, self._x_m: self._x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year
         self._mortality[yr, self._x_m: self._x_f + 1] = temporg_autoch  # [g] Belowground plant material deposited in a given year, for keeping track of without decomposition
         self._organic_dep_alloch[yr, self._x_m: self._x_f + 1] = temporg_alloch  # [g] Allochthonous organic material deposited in a given year
@@ -472,7 +471,7 @@ class Bmftc:
 
         if F == 1:  # If flooding occurred, adjust marsh flux
             # Calculate the amount of organic and mineral sediment liberated from the flooded cells
-            FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos)
+            FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b)
             # Adjust flux of mineral sediment to the marsh
             self._Fm_min -= FF_min
             # Adjust flux of organic sediment to the marsh
@@ -502,12 +501,12 @@ class Bmftc:
         elif self._x_m <= 0:  # Condition for if the marsh has expanded to fill the basin
             print("Marsh has expanded to fill the basin.")
             self._endyear = yr
-            self._edge_flood[self._endyear + 1:] = []  # ?
+            # self._edge_flood[self._endyear + 1:] = []  # ?
             return  # Exit program
         elif self._x_m >= self._B:  # Condition for if the marsh has eroded completely away
             print("Marsh has retreated. Basin is completely flooded.")
             self._endyear = yr
-            self._edge_flood[self._endyear + 1:] = []  # ?
+            # self._edge_flood[self._endyear + 1:] = []  # ?
             return  # Exit program
 
         # if self._db < 0.3:  # Condition for if the bay gets very shallow. Should this number be calculated within the code?
@@ -639,3 +638,6 @@ class Bmftc:
     def Forest_edge(self):
         return self._Forest_edge
 
+    @property
+    def rhos(self):
+        return self._rhos

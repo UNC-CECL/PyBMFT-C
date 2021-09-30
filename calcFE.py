@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _5 July 2021_ by _IRB Reeves_
+Last updated _30 September 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -9,7 +9,7 @@ import math
 import bisect
 
 
-def calcFE(bfoc, bfop, elevation, yr, organic_dep_autoch, organic_dep_alloch, mineral_dep, rhos):
+def calcFE(bfoc, bfop, elevation, yr, organic_dep_autoch, organic_dep_alloch, mineral_dep, rhos, x_b):
     """Function to calculate the flux of organic matter (FE_org) and the flux of mineral sediment (FE_min) from the marsh to the bay,using the fetch for the current year (bfoc)
     the fetch for the previous year (bfop) and the stragtigraphy of organic and mineral deposition """
 
@@ -18,9 +18,9 @@ def calcFE(bfoc, bfop, elevation, yr, organic_dep_autoch, organic_dep_alloch, mi
     pyr = yr - 1  # Previous year
     E = bfoc - bfop  # Amount of erosion b/t the previous yr and the current yr
 
-    x_m1 = math.ceil(bfop) - 1  # First marsh cell to erode
+    x_m1 = math.ceil(bfop) + math.ceil(x_b) - 1  # First marsh cell to erode
 
-    x_m2 = math.ceil(bfoc) - 1  # Last  marsh cell to erode
+    x_m2 = math.ceil(bfoc) + math.ceil(x_b) - 1  # Last  marsh cell to erode
 
     if E <= 0:
         FE_org = 0  # [g] If there is no erosion, no OM is eroded
