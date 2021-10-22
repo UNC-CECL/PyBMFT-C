@@ -245,8 +245,9 @@ class Bmftc:
         # Year including spinup
         yr = self._time_index + self._startyear
 
-        # Find first marsh cell x-location
+        # Find first marsh and forest cell x-location
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
 
         # Calculate the density of the marsh edge cell
         boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
@@ -359,7 +360,7 @@ class Bmftc:
             return  # Exit program
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
-        self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
 
@@ -409,7 +410,7 @@ class Bmftc:
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
         avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
-        self._x_f = bisect.bisect_left(self._elevation[yr - 1, :], self._msl[yr] + self._amp - self._Dmin)  # New first forest cell
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
 
         if self._forest_on:
             # Update forest soil organic matter
