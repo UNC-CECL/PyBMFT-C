@@ -11,7 +11,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
+def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, filename_equilbaydepth, plot):
     """Creates model domain and initial morphology of the bay, marsh, and upland slope. Marsh and bay depth are set
     to values close to equilibrium for the given sea level rise rate and suspended sediment concentration."""
 
@@ -24,7 +24,7 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, plot):
         dfo = 2
         print("Warning: Initial conditions have not been calibrated for these parameters [0]")
     else:
-        db_eq_dict = scipy.io.loadmat(directory + "/Equilibrium Bay Depth.mat")
+        db_eq_dict = scipy.io.loadmat(filename_equilbaydepth)
         db_eq = db_eq_dict["db_eq"]
         if C / 10 > np.size(db_eq, axis=0) or R > np.size(db_eq, axis=1):
             dfo = 2

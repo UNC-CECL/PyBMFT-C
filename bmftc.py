@@ -34,6 +34,7 @@ class Bmftc:
             bay_fetch_initial=5000,
             forest_age_initial=60,
             filename_marshspinup="Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50.mat",
+            filename_equilbaydepth="Input/PyBMFT-C/Equilibrium Bay Depth.mat",
 
             # KV Organic
             bulk_density_mineral=2000,
@@ -190,7 +191,7 @@ class Bmftc:
         self._marshOC_initial = self._marshOCP_initial / 100 * (self._marshOM_initial + self._marshMM_initial)  # [kg] Organic carbon deposited in the marsh over the past 25 (?30?) years
 
         # Build starting transect
-        self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, plot=False)
+        self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, filename_equilbaydepth, plot=False)
 
         # Find first forest cell x-location
         self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin)   # First forest cell
