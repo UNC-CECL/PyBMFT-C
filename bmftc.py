@@ -194,7 +194,7 @@ class Bmftc:
         self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, filename_equilbaydepth, plot=False)
 
         # Find first forest cell x-location
-        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin)   # First forest cell
+        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin + 0.025)   # First forest cell
 
         # Set up vectors for deposition
         self._organic_dep_alloch = np.zeros([self._endyear, self._B])
@@ -248,10 +248,11 @@ class Bmftc:
 
         # Find first marsh and forest cell x-location
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.025)[0][0]
 
         # Calculate the density of the marsh edge cell
         boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
+        # boundyr = np.where(self._elevation[:, self._x_m] < self._elevation[yr - 1, 0])[0]
         if boundyr == 0:
             us = self._elevation[0, self._x_m] - self._elevation[yr - 1, 0]  # [m] Depth of underlying stratigraphy
             usmass = us * self._rhos  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
@@ -259,13 +260,23 @@ class Bmftc:
             usmass = 0  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
 
         # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg]
-        massm = np.sum(self._organic_dep_autoch[:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m]) / 1000 + np.sum(
-            self._mineral_dep[:, self._x_m]) / 1000 + usmass
+        # massm = np.sum(self._organic_dep_autoch[:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m]) / 1000 + np.sum(
+        #     self._mineral_dep[:, self._x_m]) / 1000 + usmass
+        massm = np.sum(self._organic_dep_autoch[:, self._x_m + 1]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m + 1]) / 1000 + np.sum(
+            self._mineral_dep[:, self._x_m + 1]) / 1000 + usmass  # Temp IR 27 Oct 21
         # Volume of sediment to be eroded at the current marsh edge above the depth of erosion [m3]
-        volm = self._elevation[yr - 1, self._x_m] - self._elevation[yr - 1, 0]
+        # volm = self._elevation[yr - 1, self._x_m] - self._elevation[yr - 1, 0]
+        volm = self._elevation[yr - 1, self._x_m + 1] - self._elevation[yr - 1, self._b]  # Temp IR 27 Oct 21
 
         rhom = massm / volm  # [kg/m3] Bulk density of marsh edge
         self._rhomt[self._time_index] = rhom
+
+        if np.isnan(rhom):
+            print("NAN!")
+        elif np.isinf(rhom):
+            print("INF!")
+        elif rhom == 0:
+            print("ZERO!")
 
         Fm = (self._Fm_min + self._Fm_org) / (3600 * 24 * 365)  # [kg/s] Mass flux of both mineral and organic sediment from the bay to the marsh
 
@@ -361,7 +372,7 @@ class Bmftc:
             return  # Exit program
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.025)[0][0]
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
 
@@ -411,7 +422,7 @@ class Bmftc:
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
         avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.025)[0][0]
 
         if self._forest_on:
             # Update forest soil organic matter
