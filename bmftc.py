@@ -616,6 +616,10 @@ class Bmftc:
         return self._amp
 
     @property
+    def Dmin(self):
+        return self._Dmin
+
+    @property
     def seagrass(self):
         return self._seagrass
 
