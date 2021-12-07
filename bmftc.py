@@ -224,6 +224,7 @@ class Bmftc:
         # Initialize
         self._C_e_ODE = []
         self._Fc_ODE = []
+        self._drown_break = 0
 
         # Initialize additional data storage arrays
         self._mortality = np.zeros([self._endyear, self._B])
@@ -271,6 +272,7 @@ class Bmftc:
         rhom = massm / volm  # [kg/m3] Bulk density of marsh edge
         self._rhomt[self._time_index] = rhom
 
+        # Temp: debugging
         if np.isnan(rhom):
             print("NAN!")
         elif np.isinf(rhom):
@@ -367,6 +369,7 @@ class Bmftc:
         self._rhob = 1 / ((1 - self._OCb[yr]) / self._rhos + self._OCb[yr] / self._rhoo)  # [kg/m3] Density of bay sediment
 
         if int(self._bfo) <= 0:
+            self._drown_break = 1
             print("Marsh has eroded completely away")
             self._endyear = yr
             return  # Exit program
@@ -472,6 +475,8 @@ class Bmftc:
         self._OM_sum_au[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_autoch[:yr + 1, :])
         self._OM_sum_al[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_alloch[:yr + 1, :])
 
+
+        ### IR 7Dec21: Problems arise here. Will erode marsh edge til no marsh left.
         F = 0
         while self._x_m < self._B:
             if self._organic_dep_autoch[yr, self._x_m] > 0:  # If organic deposition is greater than zero, marsh is no longer growing
@@ -512,17 +517,20 @@ class Bmftc:
             self._dmo = self._msl[yr] + self._amp - self._elevation[yr, self._x_m]
             self._Edge_ht[yr] = self._dmo
         elif self._x_m <= 0:  # Condition for if the marsh has expanded to fill the basin
+            self._drown_break = 1
             print("Marsh has expanded to fill the basin.")
             self._endyear = yr
             # self._edge_flood[self._endyear + 1:] = []  # ?
             return  # Exit program
-        elif self._x_m >= self._B:  # Condition for if the marsh has eroded completely away
+        elif self._x_m >= len(self._elevation[0, :]):  # Condition for if the marsh has eroded completely away
+            self._drown_break = 1
             print("Marsh has retreated. Basin is completely flooded.")
             self._endyear = yr
             # self._edge_flood[self._endyear + 1:] = []  # ?
             return  # Exit program
 
         # if self._db < 0.3:  # Condition for if the bay gets very shallow. Should this number be calculated within the code?
+        #     self._drown_break = 1
         #     print("Bay has filled in to form marsh.")
         #     self._endyear = yr
         #     # self._edge_flood[self._endyear + 1:] = []  # ERROR HERE
@@ -658,3 +666,15 @@ class Bmftc:
     @property
     def rhos(self):
         return self._rhos
+
+    @property
+    def dmo(self):
+        return self._dmo
+
+    @property
+    def Edge_ht(self):
+        return self._Edge_ht
+
+    @property
+    def drown_break(self):
+        return self._drown_break
