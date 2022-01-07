@@ -479,7 +479,7 @@ class Bmftc:
         ### IR 7Dec21: Problems arise here. Will erode marsh edge til no marsh left.
         F = 0
         while self._x_m < self._B:
-            if self._organic_dep_autoch[yr, self._x_m] > 0:  # If organic deposition is greater than zero, marsh is no longer growing
+            if self._organic_dep_autoch[yr, self._x_m] > 0:  # If organic deposition is greater than zero, marsh is still growing
                 break
             else:  # Otherwise, the marsh has drowned, and will be eroded to form new bay
                 F = 1
