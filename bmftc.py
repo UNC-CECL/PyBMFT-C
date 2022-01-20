@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _30 September 2021_ by _IRB Reeves_
+Last updated _20 January 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -72,7 +72,7 @@ class Bmftc:
             sed_flux_pond=0,
 
             # Seagrass
-            seagrass_on=True,
+            seagrass_on=False,
 
     ):
         """Bay-Marsh-Forest Transect Carbon Model (Python version)
@@ -91,12 +91,12 @@ class Bmftc:
         """
 
         self._name = name
-        self._RSLRi = relative_sea_level_rise  # mm/yr
+        self._RSLRi = relative_sea_level_rise  # [mm/yr]
         self._RSLR = relative_sea_level_rise * 10 ** (-3) / (3600 * 24 * 365)  # Convert from mm/yr to m/s
         self._time_index = 0
         self._dt = time_step
         self._dur = time_step_count + 1
-        self._Coi = reference_concentration  # mg/L
+        self._Coi = reference_concentration  # [mg/L]
         self._Co = reference_concentration / 1000  # Convert to kg/m3
         self._slope = slope_upland
 
@@ -143,7 +143,7 @@ class Bmftc:
 
         # Load MarshStrat spin up file
         marsh_spinup = scipy.io.loadmat(filename_marshspinup)
-        self._elev25 = marsh_spinup["elev_25"]  # IR 29Jun21: very slightly off from Matlab version when importing (rounding error)
+        self._elev25 = marsh_spinup["elev_25"]
         self._min_25 = marsh_spinup["min_25"]
         self._orgAL_25 = marsh_spinup["orgAL_25"]
         self._orgAT_25 = marsh_spinup["orgAT_25"]
@@ -178,7 +178,7 @@ class Bmftc:
         self._fetch[:self._startyear] = self._bfo
         self._forest_on = forest_on  # Boolean controls whether forest organic deposition/decomposition occurs
 
-        self._tidal_dt = self._P / self._numiterations  # Inundation time?
+        self._tidal_dt = self._P / self._numiterations  # Inundation time
         self._OCb = np.zeros(self._endyear)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the marsh. Initially set to zero.
         self._OCb[:self._endyear + 1] = 0.05
         self._edge_flood = np.zeros(self._endyear)  # IR 6/8: Undefined variable
@@ -188,7 +188,7 @@ class Bmftc:
         self._marshMM_initial = np.sum(np.sum(self._min_25)) / 1000  # [kg] Total mass of mineral matter in the marsh at the beginning of the simulation
         self._marshLOI_initial = self._marshOM_initial / (self._marshOM_initial + self._marshMM_initial) * 100  # [%] LOI of the initial marsh deposit
         self._marshOCP_initial = 0.4 * self._marshLOI_initial + 0.0025 * self._marshLOI_initial ** 2  # [%] Organic carbon content from Craft et al. (1991)
-        self._marshOC_initial = self._marshOCP_initial / 100 * (self._marshOM_initial + self._marshMM_initial)  # [kg] Organic carbon deposited in the marsh over the past 25 (?30?) years
+        self._marshOC_initial = self._marshOCP_initial / 100 * (self._marshOM_initial + self._marshMM_initial)  # [kg] Organic carbon deposited in the marsh over the past spinup years
 
         # Build starting transect
         self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, filename_equilbaydepth, plot=False)
@@ -200,7 +200,7 @@ class Bmftc:
         self._organic_dep_alloch = np.zeros([self._endyear, self._B])
         self._organic_dep_autoch = np.zeros([self._endyear, self._B])
         self._mineral_dep = np.zeros([self._endyear, self._B])
-        self._organic_dep_alloch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAL_25  # Set the first 25[?] years to be the spin up values for deposition
+        self._organic_dep_alloch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAL_25  # Set spinup years to be the spin up values for deposition
         self._organic_dep_autoch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAT_25
         self._mineral_dep[:self._startyear, self._x_m: self._x_m + self._mwo] = self._min_25
 
@@ -219,7 +219,7 @@ class Bmftc:
 
         self._Bay_depth = np.zeros([self._endyear])
         self._Bay_depth[:self._startyear] = self._db
-        self._dmo = self._elevation[self._startyear - 1, self._x_m]  # Set marsh edge depth to the elevation of the marsh edge at year 25[?]
+        self._dmo = self._elevation[self._startyear - 1, self._x_m]  # Set marsh edge depth to the elevation of the marsh edge at startyear
 
         # Initialize
         self._C_e_ODE = []
@@ -251,9 +251,11 @@ class Bmftc:
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
         self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.025)[0][0]
 
+        if self._x_f <= self._x_m:
+            self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
+
         # Calculate the density of the marsh edge cell
         boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
-        # boundyr = np.where(self._elevation[:, self._x_m] < self._elevation[yr - 1, 0])[0]
         if boundyr == 0:
             us = self._elevation[0, self._x_m] - self._elevation[yr - 1, 0]  # [m] Depth of underlying stratigraphy
             usmass = us * self._rhos  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
@@ -261,24 +263,13 @@ class Bmftc:
             usmass = 0  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
 
         # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg]
-        # massm = np.sum(self._organic_dep_autoch[:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m]) / 1000 + np.sum(
-        #     self._mineral_dep[:, self._x_m]) / 1000 + usmass
         massm = np.sum(self._organic_dep_autoch[:, self._x_m + 1]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m + 1]) / 1000 + np.sum(
             self._mineral_dep[:, self._x_m + 1]) / 1000 + usmass  # Temp IR 27 Oct 21
         # Volume of sediment to be eroded at the current marsh edge above the depth of erosion [m3]
-        # volm = self._elevation[yr - 1, self._x_m] - self._elevation[yr - 1, 0]
-        volm = self._elevation[yr - 1, self._x_m + 1] - self._elevation[yr - 1, self._b]  # Temp IR 27 Oct 21
+        volm = self._elevation[yr - 1, self._x_m + 1] - self._elevation[yr - 1, self._b]
 
         rhom = massm / volm  # [kg/m3] Bulk density of marsh edge
         self._rhomt[self._time_index] = rhom
-
-        # Temp: debugging
-        if np.isnan(rhom):
-            print("NAN!")
-        elif np.isinf(rhom):
-            print("INF!")
-        elif rhom == 0:
-            print("ZERO!")
 
         Fm = (self._Fm_min + self._Fm_org) / (3600 * 24 * 365)  # [kg/s] Mass flux of both mineral and organic sediment from the bay to the marsh
 
@@ -317,6 +308,7 @@ class Bmftc:
             self._seagrass[yr, :],
             self,
         ]
+
 
         # ODE solves for change in bay depth and width
         # IR 5July21: Small deviations in the solved values from the Matlab version (on the order of ~ 10^-4 to 10^-5)
@@ -368,20 +360,24 @@ class Bmftc:
 
         self._rhob = 1 / ((1 - self._OCb[yr]) / self._rhos + self._OCb[yr] / self._rhoo)  # [kg/m3] Density of bay sediment
 
-        if int(self._bfo) <= 0:
+        if int(self._bfo) <= 10:
             self._drown_break = 1
-            print("Marsh has eroded completely away")
+            print("Marsh has completely filled the basin")
             self._endyear = yr
             return  # Exit program
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
         self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.025)[0][0]
+
+        if self._x_f <= self._x_m:
+            self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
+
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
 
         if Dcells > 0:  # Prograde the marsh, with new marsh cells having the same elevation as the previous marsh edge
             tempelevation[0: int(Dcells)] = self._elevation[yr - 1, int(self._Marsh_edge[yr - 1])]
-            # Account for mineral and organic material deposited in new marsh cells  # IR 21Jun21: IS THIS TO-DO??
+            # Account for mineral and organic material deposited in new marsh cells
 
         self._msl[yr] = self._msl[yr - 1] + self._SLR
         self._elevation[yr, 0: self._x_m] = self._msl[yr] + self._amp - self._db  # All bay cells have the same depth
@@ -475,8 +471,6 @@ class Bmftc:
         self._OM_sum_au[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_autoch[:yr + 1, :])
         self._OM_sum_al[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_alloch[:yr + 1, :])
 
-
-        ### IR 7Dec21: Problems arise here. Will erode marsh edge til no marsh left.
         F = 0
         while self._x_m < self._B:
             if self._organic_dep_autoch[yr, self._x_m] > 0:  # If organic deposition is greater than zero, marsh is still growing
@@ -487,6 +481,9 @@ class Bmftc:
                 self._bfo += 1  # Increase the bay fetch by one cell
                 self._x_m += 1  # Update the new location of the marsh edge
 
+        if self._x_f <= self._x_m:
+            self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
+
         if F == 1:  # If flooding occurred, adjust marsh flux
             # Calculate the amount of organic and mineral sediment liberated from the flooded cells
             FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b)
@@ -495,7 +492,7 @@ class Bmftc:
             # Adjust flux of organic sediment to the marsh
             self._Fm_org -= FF_org
             # Change the drowned marsh cell to z bay cell
-            self._elevation[yr, :self._x_m + 1] = self._elevation[yr, 0]
+            self._elevation[yr, :self._x_m] = self._elevation[yr, 0]
 
         self._fluxes[:, yr] = [
             Fe_min,
@@ -516,25 +513,26 @@ class Bmftc:
         if 0 < self._x_m < self._B:
             self._dmo = self._msl[yr] + self._amp - self._elevation[yr, self._x_m]
             self._Edge_ht[yr] = self._dmo
-        elif self._x_m <= 0:  # Condition for if the marsh has expanded to fill the basin
+        elif int(self._bfo) <= 10: # Condition for if the marsh has expanded to fill the basin
+            self._drown_break = 1
+            print("Marsh has completely filled the basin")
+            self._endyear = yr
+            return  # Exit program
+        elif self._x_m <= 10:  # Another condition for if the marsh has expanded to fill the basin
             self._drown_break = 1
             print("Marsh has expanded to fill the basin.")
             self._endyear = yr
-            # self._edge_flood[self._endyear + 1:] = []  # ?
             return  # Exit program
-        elif self._x_m >= len(self._elevation[0, :]):  # Condition for if the marsh has eroded completely away
+        elif self._x_m >= len(self._elevation[0, :]) - 10:  # Condition for if the marsh has eroded completely away
             self._drown_break = 1
             print("Marsh has retreated. Basin is completely flooded.")
             self._endyear = yr
-            # self._edge_flood[self._endyear + 1:] = []  # ?
             return  # Exit program
-
-        # if self._db < 0.3:  # Condition for if the bay gets very shallow. Should this number be calculated within the code?
-        #     self._drown_break = 1
-        #     print("Bay has filled in to form marsh.")
-        #     self._endyear = yr
-        #     # self._edge_flood[self._endyear + 1:] = []  # ERROR HERE
-        #     return  # Exit program
+        elif self._db < 0.2:  # Condition for if the bay gets very shallow. Should this number be calculated within the code?
+            self._drown_break = 1
+            print("Bay has filled in to form marsh.")
+            self._endyear = yr
+            return  # Exit program
 
         self._fetch[yr] = self._bfo  # Save change in bay fetch through time
 

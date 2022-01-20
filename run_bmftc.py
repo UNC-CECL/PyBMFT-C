@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _20 August 2021_ by _IRB Reeves_
+Last updated _20 January 2021_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import time
@@ -17,16 +17,19 @@ warnings.filterwarnings("ignore")
 # Create an instance of the BMI class
 bmftc = Bmftc(
             name="default",
-            time_step=1,
-            time_step_count=50,
-            relative_sea_level_rise=3,
+            time_step_count=125,
+            relative_sea_level_rise=8,
             reference_concentration=50,
             slope_upland=0.005,
-            bay_fetch_initial=3000,
-            wind_speed=5,
-            seagrass_on=True,
-            critical_shear_mudflat=0.2,
+            bay_fetch_initial=5000,
+            wind_speed=6,
+            seagrass_on=False,
+            forest_on=True,
+            # filename_equilbaydepth="Input/PyBMFT-C/EquilibriumBayDepth_f3000_w5.mat",
+            filename_equilbaydepth="Input/PyBMFT-C/Equilibrium Bay Depth.mat",
+            # filename_marshspinup="Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50_width500.mat",
             filename_marshspinup="Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50.mat",
+            marsh_width_initial=1000
 )
 
 # ==================================================================================================================================================================================
@@ -127,7 +130,8 @@ plt.ylabel("Mineral Deposition [g]")
 # plt.ylabel("Organic Deposition Alloch [g]")
 
 plt.figure()
-plt.plot(bmftc.elevation[bmftc.endyear - 1, :])
+for t in range(bmftc.startyear, bmftc.endyear, 10):
+    plt.plot(bmftc.elevation[t, :])
 plt.xlabel("Distance")
 plt.ylabel("Elevation [m MSL]")
 
