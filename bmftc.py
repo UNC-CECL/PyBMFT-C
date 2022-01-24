@@ -32,6 +32,8 @@ class Bmftc:
 
             marsh_width_initial=1000,
             bay_fetch_initial=5000,
+            forest_width_initial_fixed=False,
+            forest_width_initial=2000,
             forest_age_initial=60,
             filename_marshspinup="Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50.mat",
             filename_equilbaydepth="Input/PyBMFT-C/Equilibrium Bay Depth.mat",
@@ -102,10 +104,12 @@ class Bmftc:
 
         self._mwo = marsh_width_initial
         self._bfo = bay_fetch_initial
+        self._forest_width_initial_fixed = forest_width_initial_fixed  # [Boolean] Determines whether simulation auto-calculates initial forest width based on RSLR/slope (False) or starts with fixed width (True)
+        self._forest_width_initial = forest_width_initial  # Fixed initial width of forest, applied only if forest_width_initial_fixed = True
         self._startforestage = forest_age_initial
 
-        self._rhos = bulk_density_mineral
-        self._rhoo = bulk_density_organic
+        self._rhos = bulk_density_mineral  # [kg/m3]
+        self._rhoo = bulk_density_organic  # [kg/m3]
         self._P = tidal_period
         self._ws = settling_velocity_effective
         self._wsf = settling_velocity_mudflat
@@ -191,10 +195,10 @@ class Bmftc:
         self._marshOC_initial = self._marshOCP_initial / 100 * (self._marshOM_initial + self._marshMM_initial)  # [kg] Organic carbon deposited in the marsh over the past spinup years
 
         # Build starting transect
-        self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, filename_equilbaydepth, plot=False)
+        self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, self._startyear, filename_equilbaydepth, self._forest_width_initial_fixed, self._forest_width_initial, plot=False)
 
         # Find first forest cell x-location
-        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin + 0.025)   # First forest cell
+        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin)   # First forest cell
 
         # Set up vectors for deposition
         self._organic_dep_alloch = np.zeros([self._endyear, self._B])
@@ -225,6 +229,7 @@ class Bmftc:
         self._C_e_ODE = []
         self._Fc_ODE = []
         self._drown_break = 0
+        self._Fow_min = 0  # [kg/yr] Annual net flux of mineral sediment into the bay from overwash
 
         # Initialize additional data storage arrays
         self._mortality = np.zeros([self._endyear, self._B])
@@ -249,7 +254,7 @@ class Bmftc:
 
         # Find first marsh and forest cell x-location
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.025)[0][0]
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
 
         if self._x_f <= self._x_m:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
@@ -339,7 +344,7 @@ class Bmftc:
         Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
 
         Fb_org = Fe_org - self._Fm_org - Fc_org  # [kg/yr] Net flux of organic sediment into (or out of, if negative) the bay
-        Fb_min = Fe_min - self._Fm_min - Fc_min  # [kg/yr] Net flux of mineral sediment into (or out of, if negative) the bay
+        Fb_min = Fe_min - self._Fm_min - Fc_min + self._Fow_min # [kg/yr] Net flux of mineral sediment into (or out of, if negative) the bay
 
         self._BayExport[yr, :] = [Fc_org, Fc_min]  # [kg/yr] Mass of organic and mineral sediment exported from the bay each year
         self._BayOM[yr] = Fb_org  # [kg/yr] Mass of organic sediment stored in the bay in each year
@@ -367,7 +372,7 @@ class Bmftc:
             return  # Exit program
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.025)[0][0]
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
 
         if self._x_f <= self._x_m:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
@@ -421,7 +426,7 @@ class Bmftc:
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
         avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.025)[0][0]
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
 
         if self._forest_on:
             # Update forest soil organic matter
@@ -676,3 +681,15 @@ class Bmftc:
     @property
     def drown_break(self):
         return self._drown_break
+
+    @property
+    def forest_width_initial_fixed(self):
+        return self._forest_width_initial_fixed
+
+    @property
+    def forest_width_initial(self):
+        return self._forest_width_initial
+
+    @property
+    def Fow_min(self):
+        return self._Fow_min

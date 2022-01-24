@@ -11,7 +11,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, filename_equilbaydepth, plot):
+def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, startyear, filename_equilbaydepth, forest_width_initial_fixed, forest_width_initial, plot):
     """Creates model domain and initial morphology of the bay, marsh, and upland slope. Marsh and bay depth are set
     to values close to equilibrium for the given sea level rise rate and suspended sediment concentration."""
 
@@ -37,9 +37,13 @@ def buildtransect(R, C, slope, mwo, elev_25, amp, wind, bfo, endyear, filename_e
 
     x_m = bfo  # First marsh cell
 
-    maxY = R / 1000 * endyear + amp + 0.5  # Maximum sea-level excursion
+    maxY = R / 1000 * (endyear - startyear) + amp + 0.25  # Maximum sea-level excursion
     max_potentialwidth = math.ceil(maxY / slope)
-    upland_width = int(math.ceil(maxY / slope))
+
+    if forest_width_initial_fixed:
+        upland_width = forest_width_initial  # If starting with a pre-determined initial forest width
+    else:
+        upland_width = int(math.ceil(maxY / slope))  # If starting with a varying initial forest width determined by RSLR and slope
 
     if max_potentialwidth > upland_width:
         raise ValueError("Slope/sea-level rise conditions are such that the model domain is too small for the "
