@@ -76,16 +76,16 @@ def evolvemarsh(
 
     # -------------------------
     # Mineral Deposition
-
+    coeff = -0.002  # Coefficient of -0.0031 is a fitted parameter for realistic marsh topography
     distance = 0  # [m] Initialize, distance from marsh edge
     for xx in range(L):
         if bgb[xx] > 0:
             distance += 1  # [m]
-            C[xx] = C_e * math.exp(-0.0031 * distance)  # [kg/m3] Concentration at each marsh cell. Coefficient of -0.0031 is a fitted parameter for realistic marsh topography
+            C[xx] = C_e * math.exp(coeff * distance)  # [kg/m3] Concentration at each marsh cell. Coefficient of -0.0031 is a fitted parameter for realistic marsh topography
         else:
             distance = 1  # [m]
             C_e = C_e * 0.9  # [kg/m3] Decrease concentration at the new "marsh edge" by 10% with each subsequent pond formation
-            C[xx] = C_e * math.exp(-0.0031 * distance)  # [kg/m3] Concentration at each marsh cell. Coefficient of -0.0031 is a fitted parameter for realistic marsh topography
+            C[xx] = C_e * math.exp(coeff * distance)  # [kg/m3] Concentration at each marsh cell. Coefficient of -0.0031 is a fitted parameter for realistic marsh topography
 
     floodfraction = np.sum(time_submerged, axis=0) / P  # Portion of the tidal cycle that each point is submerged
 

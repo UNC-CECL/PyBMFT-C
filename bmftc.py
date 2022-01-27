@@ -255,6 +255,7 @@ class Bmftc:
         # Find first marsh and forest cell x-location
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
         self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
+        # self._x_f = np.where(self._elevation[yr - 1, :] < self._msl[yr] + self._amp - self._Dmin)[0][-1] + 1
 
         if self._x_f <= self._x_m:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
@@ -373,6 +374,8 @@ class Bmftc:
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
         self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
+        # self._x_f = np.where(self._elevation[yr - 1, :] < self._msl[yr] + self._amp - self._Dmin)[0][-1] + 1
+
 
         if self._x_f <= self._x_m:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
@@ -426,7 +429,8 @@ class Bmftc:
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
         avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
+        self._x_f = np.where(self._elevation[yr, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
+        # self._x_f = np.where(self._elevation[yr, :] < self._msl[yr] + self._amp - self._Dmin)[0][-1] + 1
 
         if self._forest_on:
             # Update forest soil organic matter
