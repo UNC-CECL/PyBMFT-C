@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _30 September 2021_ by _IRB Reeves_
+Last updated _1 February 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -18,9 +18,9 @@ def calcFE(bfoc, bfop, elevation, yr, organic_dep_autoch, organic_dep_alloch, mi
     pyr = yr - 1  # Previous year
     E = bfoc - bfop  # Amount of erosion b/t the previous yr and the current yr
 
-    x_m1 = math.ceil(bfop) + math.ceil(x_b) - 1  # First marsh cell to erode
+    x_m1 = math.ceil(bfop) + math.ceil(x_b)  # First marsh cell to erode
 
-    x_m2 = math.ceil(bfoc) + math.ceil(x_b) - 1  # Last  marsh cell to erode
+    x_m2 = math.ceil(bfoc) + math.ceil(x_b)  # Last  marsh cell to erode
 
     if E <= 0:
         FE_org = 0  # [g] If there is no erosion, no OM is eroded
@@ -41,7 +41,7 @@ def calcFE(bfoc, bfop, elevation, yr, organic_dep_autoch, organic_dep_alloch, mi
     else:
         ecells = x_m2 - x_m1  # Number of cells eroded
         Hfrac_ero = np.ones(ecells)
-        Hfrac_ero[0] = x_m1 - (bfop - 1)  # Horizontal fraction of previous marsh edge that is eroded
+        Hfrac_ero[0] = x_m1 - bfop - x_b  # Horizontal fraction of previous marsh edge that is eroded
         Hfrac_ero[-1] = bfoc - math.floor(bfoc)  # Horizontal fraction of current marsh edge that is eroded
 
         FE_org = 0

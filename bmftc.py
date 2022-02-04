@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _20 January 2021_ by _IRB Reeves_
+Last updated _1 February 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -198,7 +198,7 @@ class Bmftc:
         self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, self._startyear, filename_equilbaydepth, self._forest_width_initial_fixed, self._forest_width_initial, plot=False)
 
         # Find first forest cell x-location
-        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin)   # First forest cell
+        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin + 0.03)   # First forest cell
 
         # Set up vectors for deposition
         self._organic_dep_alloch = np.zeros([self._endyear, self._B])
@@ -251,11 +251,6 @@ class Bmftc:
 
         # Year including spinup
         yr = self._time_index + self._startyear
-
-        # Find first marsh and forest cell x-location
-        self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # IR addition, recalculate after coupling (x_m is calculated from x_b=0)
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
-        # self._x_f = np.where(self._elevation[yr - 1, :] < self._msl[yr] + self._amp - self._Dmin)[0][-1] + 1
 
         if self._x_f <= self._x_m:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
@@ -345,7 +340,7 @@ class Bmftc:
         Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
 
         Fb_org = Fe_org - self._Fm_org - Fc_org  # [kg/yr] Net flux of organic sediment into (or out of, if negative) the bay
-        Fb_min = Fe_min - self._Fm_min - Fc_min + self._Fow_min # [kg/yr] Net flux of mineral sediment into (or out of, if negative) the bay
+        Fb_min = Fe_min - self._Fm_min - Fc_min + self._Fow_min  # [kg/yr] Net flux of mineral sediment into (or out of, if negative) the bay
 
         self._BayExport[yr, :] = [Fc_org, Fc_min]  # [kg/yr] Mass of organic and mineral sediment exported from the bay each year
         self._BayOM[yr] = Fb_org  # [kg/yr] Mass of organic sediment stored in the bay in each year
@@ -373,9 +368,7 @@ class Bmftc:
             return  # Exit program
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
-        # self._x_f = np.where(self._elevation[yr - 1, :] < self._msl[yr] + self._amp - self._Dmin)[0][-1] + 1
-
+        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
 
         if self._x_f <= self._x_m:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
@@ -429,8 +422,7 @@ class Bmftc:
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
         avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
-        self._x_f = np.where(self._elevation[yr, :] > self._msl[yr] + self._amp - self._Dmin)[0][0]
-        # self._x_f = np.where(self._elevation[yr, :] < self._msl[yr] + self._amp - self._Dmin)[0][-1] + 1
+        self._x_f = np.where(self._elevation[yr, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
 
         if self._forest_on:
             # Update forest soil organic matter
@@ -522,7 +514,7 @@ class Bmftc:
         if 0 < self._x_m < self._B:
             self._dmo = self._msl[yr] + self._amp - self._elevation[yr, self._x_m]
             self._Edge_ht[yr] = self._dmo
-        elif int(self._bfo) <= 10: # Condition for if the marsh has expanded to fill the basin
+        elif int(self._bfo) <= 10:  # Condition for if the marsh has expanded to fill the basin
             self._drown_break = 1
             print("Marsh has completely filled the basin")
             self._endyear = yr
