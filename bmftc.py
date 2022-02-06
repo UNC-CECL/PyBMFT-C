@@ -215,7 +215,6 @@ class Bmftc:
 
         # Set options for ODE solver
         POOLstopp5.terminal = True
-        # POOLstopp5.direction = 1  # IR 15Jun21: Is this correct? Trouble translating from Matlab
 
         # Calculate where elevation is right for the forest to start
         self._Forest_edge[self._startyear - 1] = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear - 1] + self._amp + self._Dmin)
@@ -264,8 +263,7 @@ class Bmftc:
             usmass = 0  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
 
         # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg]
-        massm = np.sum(self._organic_dep_autoch[:, self._x_m + 1]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m + 1]) / 1000 + np.sum(
-            self._mineral_dep[:, self._x_m + 1]) / 1000 + usmass  # Temp IR 27 Oct 21
+        massm = np.sum(self._organic_dep_autoch[:, self._x_m + 1]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m + 1]) / 1000 + np.sum(self._mineral_dep[:, self._x_m + 1]) / 1000 + usmass
         # Volume of sediment to be eroded at the current marsh edge above the depth of erosion [m3]
         volm = self._elevation[yr - 1, self._x_m + 1] - self._elevation[yr - 1, self._b]
 
