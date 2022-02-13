@@ -4,12 +4,12 @@ from setuptools import setup, find_packages
 setup(
     name="pybmft-c",
     version="0.0.1.dev0",
-    description="Coupled Barrier-Bay-Marsh-Forest Transect Model",
+    description="Bay-Marsh-Forest Transect Model - Python Version",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     author="Ian Reeves",
     author_email="reevesi@live.unc.edu",
-    url="https://github.com/irbreeves/BarrierBMFT",
+    url="https://github.com/irbreeves/PyBMFT-C",
     classifiers=[
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: GPLv3 License",
