@@ -311,7 +311,8 @@ class Bmftc:
 
         # ODE solves for change in bay depth and width
         # IR 5July21: Small deviations in the solved values from the Matlab version (on the order of ~ 10^-4 to 10^-5)
-        ode = solve_ivp(funBAY,
+        try:
+            ode = solve_ivp(funBAY,
                         t_span=self._to,
                         y0=[self._bfo, self._db],
                         atol=10 ** (-6),
@@ -320,8 +321,11 @@ class Bmftc:
                         args=PAR,
                         )
 
-        fetch_ODE = ode.y[0, :]
-        db_ODE = ode.y[1, :]
+            fetch_ODE = ode.y[0, :]
+            db_ODE = ode.y[1, :]
+        except ValueError:
+            fetch_ODE = [self._bfo]
+            db_ODE = [self._db]
 
         self._db = db_ODE[-1]  # Set initial depth of the bay to final depth from funBAY
         self._fetch[yr] = fetch_ODE[-1]  # Set initial width of the bay to final width from funBAY
@@ -472,7 +476,7 @@ class Bmftc:
 
         F = 0
         while self._x_m < self._B:
-            if self._organic_dep_autoch[yr, self._x_m] > 0:  # If organic deposition is greater than zero, marsh is still growing
+            if self._organic_dep_autoch[yr, self._x_m] > 0 or (self._msl[yr] - self._amp) < self._elevation[yr, self._x_m] < (self._msl[yr] + self._amp):  # If organic deposition is greater than zero, marsh is still growing
                 break
             else:  # Otherwise, the marsh has drowned, and will be eroded to form new bay
                 F = 1
