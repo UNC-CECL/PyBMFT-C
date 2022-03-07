@@ -47,7 +47,7 @@ class Bmftc:
             critical_shear_mudflat=0.1,
             wind_speed=6,
             tidal_amplitude=1.4 / 2,
-            marsh_progradation_coeff=2,
+            marsh_progradation_coeff=1,
             marsh_erosion_coeff=0.16 / (365 * 24 * 3600),
             mudflat_erodibility_coeff=0.0001,
             dist_marsh_bank=10,
@@ -308,29 +308,29 @@ class Bmftc:
             self,
         ]
 
-
         # ODE solves for change in bay depth and width
         # IR 5July21: Small deviations in the solved values from the Matlab version (on the order of ~ 10^-4 to 10^-5)
         try:
             ode = solve_ivp(funBAY,
-                        t_span=self._to,
-                        y0=[self._bfo, self._db],
-                        atol=10 ** (-6),
-                        rtol=10 ** (-6),
-                        method='BDF',
-                        args=PAR,
-                        )
+                            t_span=self._to,
+                            y0=[self._bfo, self._db],
+                            atol=10 ** (-6),
+                            rtol=10 ** (-6),
+                            method='BDF',
+                            args=PAR,
+                            )
 
             fetch_ODE = ode.y[0, :]
             db_ODE = ode.y[1, :]
-        except ValueError:
+        except ValueError:  # IR 25Feb22: Temprorary fix for rare ODE bug
+            print("  ODE Value Error")
             fetch_ODE = [self._bfo]
             db_ODE = [self._db]
 
         self._db = db_ODE[-1]  # Set initial depth of the bay to final depth from funBAY
         self._fetch[yr] = fetch_ODE[-1]  # Set initial width of the bay to final width from funBAY
         self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
-        self._C_e[yr] = self._C_e_ODE[-1]
+        self._C_e[yr] = self._C_e_ODE[-1]  # SSC at marsh edge (kg/m3)
 
         Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
@@ -380,6 +380,7 @@ class Bmftc:
 
         if Dcells > 0:  # Prograde the marsh, with new marsh cells having the same elevation as the previous marsh edge
             tempelevation[0: int(Dcells)] = self._elevation[yr - 1, int(self._Marsh_edge[yr - 1])]
+            # tempelevation[0: int(Dcells)] = self._msl[yr]
             # Account for mineral and organic material deposited in new marsh cells
 
         self._msl[yr] = self._msl[yr - 1] + self._SLR
@@ -691,3 +692,11 @@ class Bmftc:
     @property
     def Fow_min(self):
         return self._Fow_min
+
+    @property
+    def OCb(self):
+        return self._OCb
+
+    @property
+    def C_e(self):
+        return self._C_e
