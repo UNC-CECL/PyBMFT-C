@@ -198,7 +198,7 @@ class Bmftc:
         self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, self._startyear, filename_equilbaydepth, self._forest_width_initial_fixed, self._forest_width_initial, plot=False)
 
         # Find first forest cell x-location
-        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin + 0.03)   # First forest cell
+        self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin + 0.03)  # First forest cell
 
         # Set up vectors for deposition
         self._organic_dep_alloch = np.zeros([self._endyear, self._B])
@@ -251,7 +251,7 @@ class Bmftc:
         # Year including spinup
         yr = self._time_index + self._startyear
 
-        if self._x_f <= self._x_m:
+        if self._x_f <= self._x_m and self._x_f < self._B:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
 
         # Calculate the density of the marsh edge cell
@@ -370,9 +370,13 @@ class Bmftc:
             return  # Exit program
 
         self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
-        self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
+        try:
+            self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
+        except IndexError:
+            self._x_f = self._B
+            self._drown_break = 1  # If x_f can't be found, barrier has drowned
 
-        if self._x_f <= self._x_m:
+        if self._x_f <= self._x_m and self._x_f < self._B:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
 
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
@@ -380,7 +384,6 @@ class Bmftc:
 
         if Dcells > 0:  # Prograde the marsh, with new marsh cells having the same elevation as the previous marsh edge
             tempelevation[0: int(Dcells)] = self._elevation[yr - 1, int(self._Marsh_edge[yr - 1])]
-            # tempelevation[0: int(Dcells)] = self._msl[yr]
             # Account for mineral and organic material deposited in new marsh cells
 
         self._msl[yr] = self._msl[yr - 1] + self._SLR
@@ -425,7 +428,11 @@ class Bmftc:
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
         avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
-        self._x_f = np.where(self._elevation[yr, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
+        try:
+            self._x_f = np.where(self._elevation[yr, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
+        except IndexError:
+            self._x_f = self._B
+            self._drown_break = 1  # If x_f can't be found, barrier has drowned
 
         if self._forest_on:
             # Update forest soil organic matter
@@ -485,7 +492,7 @@ class Bmftc:
                 self._bfo += 1  # Increase the bay fetch by one cell
                 self._x_m += 1  # Update the new location of the marsh edge
 
-        if self._x_f <= self._x_m:
+        if self._x_f <= self._x_m and self._x_f < self._B:
             self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
 
         if F == 1:  # If flooding occurred, adjust marsh flux
