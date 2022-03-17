@@ -47,7 +47,7 @@ class Bmftc:
             critical_shear_mudflat=0.1,
             wind_speed=6,
             tidal_amplitude=1.4 / 2,
-            marsh_progradation_coeff=1,
+            marsh_progradation_coeff=2,
             marsh_erosion_coeff=0.16 / (365 * 24 * 3600),
             mudflat_erodibility_coeff=0.0001,
             dist_marsh_bank=10,
@@ -251,9 +251,6 @@ class Bmftc:
         # Year including spinup
         yr = self._time_index + self._startyear
 
-        if self._x_f <= self._x_m and self._x_f < self._B:
-            self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
-
         # Calculate the density of the marsh edge cell
         boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
         if boundyr == 0:
@@ -328,9 +325,14 @@ class Bmftc:
             db_ODE = [self._db]
 
         self._db = db_ODE[-1]  # Set initial depth of the bay to final depth from funBAY
-        self._fetch[yr] = fetch_ODE[-1]  # Set initial width of the bay to final width from funBAY
-        self._bfo = self._fetch[yr]  # Set initial bay width of the bay to final width from funBAY
+        # self._bfo = fetch_ODE[-1]  # Set initial bay width of the bay to final width from funBAY
         self._C_e[yr] = self._C_e_ODE[-1]  # SSC at marsh edge (kg/m3)
+
+        target_x_m = math.ceil(fetch_ODE[-1]) + math.ceil(self._x_b)  # New (potential) first marsh cell
+        if target_x_m >= self._x_f:  # Forest or bayside barrier edge (i.e., upland MHW shoreline) cannot erode from bay processes
+            self._bfo = self._bfo + (target_x_m - self._x_m) - 1  # Marsh edge can't be greater than or equal to forest edge
+        else:
+            self._bfo = fetch_ODE[-1]
 
         Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
@@ -375,9 +377,6 @@ class Bmftc:
         except IndexError:
             self._x_f = self._B
             self._drown_break = 1  # If x_f can't be found, barrier has drowned
-
-        if self._x_f <= self._x_m and self._x_f < self._B:
-            self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
 
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
@@ -483,7 +482,7 @@ class Bmftc:
         self._OM_sum_al[yr, :len(self._elevation) + 1] = np.sum(self._organic_dep_alloch[:yr + 1, :])
 
         F = 0
-        while self._x_m < self._B:
+        while self._x_m < self._B and self._x_m < self._x_f:
             if self._organic_dep_autoch[yr, self._x_m] > 0 or (self._msl[yr] - self._amp) < self._elevation[yr, self._x_m] < (self._msl[yr] + self._amp):  # If organic deposition is greater than zero, marsh is still growing
                 break
             else:  # Otherwise, the marsh has drowned, and will be eroded to form new bay
@@ -491,9 +490,6 @@ class Bmftc:
                 self._edge_flood[yr] += 1  # Count that cell as a flooded cell
                 self._bfo += 1  # Increase the bay fetch by one cell
                 self._x_m += 1  # Update the new location of the marsh edge
-
-        if self._x_f <= self._x_m and self._x_f < self._B:
-            self._x_f = self._x_m + 1  # Forest edge can't be less than or equal to marsh edge
 
         if F == 1:  # If flooding occurred, adjust marsh flux
             # Calculate the amount of organic and mineral sediment liberated from the flooded cells
