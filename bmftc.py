@@ -47,7 +47,7 @@ class Bmftc:
             critical_shear_mudflat=0.1,
             wind_speed=6,
             tidal_amplitude=1.4 / 2,
-            marsh_progradation_coeff=2,
+            marsh_progradation_coeff=1,
             marsh_erosion_coeff=0.16 / (365 * 24 * 3600),
             mudflat_erodibility_coeff=0.0001,
             dist_marsh_bank=10,
@@ -325,14 +325,18 @@ class Bmftc:
             db_ODE = [self._db]
 
         self._db = db_ODE[-1]  # Set initial depth of the bay to final depth from funBAY
-        # self._bfo = fetch_ODE[-1]  # Set initial bay width of the bay to final width from funBAY
         self._C_e[yr] = self._C_e_ODE[-1]  # SSC at marsh edge (kg/m3)
 
-        target_x_m = math.ceil(fetch_ODE[-1]) + math.ceil(self._x_b)  # New (potential) first marsh cell
-        if target_x_m >= self._x_f:  # Forest or bayside barrier edge (i.e., upland MHW shoreline) cannot erode from bay processes
-            self._bfo = self._bfo + (target_x_m - self._x_m) - 1  # Marsh edge can't be greater than or equal to forest edge
+        if self.x_b < 0:
+            x_b_int = math.floor(self._x_b)
         else:
-            self._bfo = fetch_ODE[-1]
+            x_b_int = math.ceil(self._x_b)
+
+        target_x_m = math.ceil(fetch_ODE[-1]) + x_b_int  # New (potential) first marsh cell
+        if target_x_m >= self._x_f:  # Forest or bayside barrier edge (i.e., upland MHW shoreline) cannot erode from bay processes
+            self._bfo = self._bfo + (self._x_f - self._x_m) - 2  # Marsh edge can't be greater than or equal to forest edge
+        else:
+            self._bfo = fetch_ODE[-1]  # Set new fetch from funBAY
 
         Fc = self._Fc_ODE[-1] * 3600 * 24 * 365  # [kg/yr] Annual net flux of sediment out of/into the bay from outside the system
         Fc_org = Fc * self._OCb[yr - 1]  # [kg/yr] Annual net flux of organic sediment out of/into the bay from outside the system
@@ -371,7 +375,7 @@ class Bmftc:
             self._endyear = yr
             return  # Exit program
 
-        self._x_m = math.ceil(self._bfo) + math.ceil(self._x_b)  # New first marsh cell
+        self._x_m = math.ceil(self._bfo) + x_b_int  # New first marsh cell
         try:
             self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
         except IndexError:
@@ -426,7 +430,6 @@ class Bmftc:
         self._organic_dep_alloch[yr, self._x_m: self._x_f + 1] = temporg_alloch  # [g] Allochthonous organic material deposited in a given year
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
-        avg_accretion = np.mean(accretion)  # [m/yr] Accretion rate for a given year averaged across the marsh platform
         try:
             self._x_f = np.where(self._elevation[yr, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
         except IndexError:
