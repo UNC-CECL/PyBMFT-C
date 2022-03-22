@@ -59,7 +59,14 @@ def funBAY(t,
     tau = max((tw - tcr) / tcr, 0) * lamda  # Excess shear stress, dimensionless
     Cr = rhos * tau / (1 + tau)  # Reference suspended sediment concentration in the basin [kg/m3]
 
-    hb = dm + (df - dm) * (1 - math.exp(-dist * 0.1 / df))  # [m] scarp height at a fix  d distance from the marsh according to semi-empirical shoaling profile
+    try:
+        hb = dm + (df - dm) * (1 - math.exp(-dist * 0.1 / df))  # [m] scarp height at a fix  d distance from the marsh according to semi-empirical shoaling profile
+    except OverflowError:
+        print()
+        print("!! hb error, dm:", dm, ", df:", df)
+        df = self.db
+        hb = dm + (df - dm) * (1 - math.exp(-dist * 0.1 / df))
+
     W = waveTRNS(amp, wind, fetch, hb, seagrass_on, effective_decay_coeff, seagrass_meadow_width, max_attenuation_pct)  # [W] Wave power density at the marsh boundary
 
     E = (Be * W / (hb - dm) - Ba * Cr * wsf / rhom)  # (m2/s) Net flux of sediment eroded from/deposited to the marsh edge
