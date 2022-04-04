@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _1 February 2022_ by _IRB Reeves_
+Last updated _4 April 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -47,7 +47,7 @@ class Bmftc:
             critical_shear_mudflat=0.1,
             wind_speed=6,
             tidal_amplitude=1.4 / 2,
-            marsh_progradation_coeff=1,
+            marsh_progradation_coeff=2,
             marsh_erosion_coeff=0.16 / (365 * 24 * 3600),
             mudflat_erodibility_coeff=0.0001,
             dist_marsh_bank=10,
@@ -240,10 +240,12 @@ class Bmftc:
         self._Fd = np.zeros([self._endyear])  # [kg] Flux of organic matter out of the marsh due to decomposition
         self._avg_accretion = np.zeros([self._endyear])  # [m/yr] Annual accretion rate averaged across the marsh platform
         self._rhomt = np.zeros([self._dur])
+        self._massmt = np.zeros([self._dur])
         self._C_e = np.zeros([self._endyear])
         self._aboveground_forest = np.zeros([self._endyear, self._B])  # Forest aboveground biomass
         self._OM_sum_au = np.zeros([self._endyear, self._B])
         self._OM_sum_al = np.zeros([self._endyear, self._B])
+        self._BaySedDensity = np.zeros([self._dur])
 
     def update(self):
         """Update Bmftc by a single time step"""
@@ -252,20 +254,26 @@ class Bmftc:
         yr = self._time_index + self._startyear
 
         # Calculate the density of the marsh edge cell
-        boundyr = bisect.bisect_left(self._elevation[:, self._x_m], self._elevation[yr - 1, 0])
+        boundyr = next(i for i, x in enumerate(self._elevation[:, self._x_m]) if x > (self._msl[yr - 1] + self._amp - self._db))
         if boundyr == 0:
-            us = self._elevation[0, self._x_m] - self._elevation[yr - 1, 0]  # [m] Depth of underlying stratigraphy
+            us = self._elevation[0, self._x_m] - (self._msl[yr - 1] + self._amp - self._db)
             usmass = us * self._rhos  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
         else:
             usmass = 0  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
 
         # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg]
-        massm = np.sum(self._organic_dep_autoch[:, self._x_m + 1]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m + 1]) / 1000 + np.sum(self._mineral_dep[:, self._x_m + 1]) / 1000 + usmass
+        massm = np.sum(self._organic_dep_autoch[:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m]) / 1000 + np.sum(self._mineral_dep[:, self._x_m]) / 1000 + usmass
         # Volume of sediment to be eroded at the current marsh edge above the depth of erosion [m3]
-        volm = self._elevation[yr - 1, self._x_m + 1] - self._elevation[yr - 1, self._b]
+        volm = self._elevation[yr - 1, self._x_m] - (self._msl[yr - 1] + self._amp - self._db)
 
         rhom = massm / volm  # [kg/m3] Bulk density of marsh edge
+        if rhom > self._rhos:
+            rhom = self._rhos
+        elif rhom < self._rhoo:
+            print("  <-- rhom =", rhom)
+            rhom = self._rhoo
         self._rhomt[self._time_index] = rhom
+        self._massmt[self._time_index] = massm
 
         Fm = (self._Fm_min + self._Fm_org) / (3600 * 24 * 365)  # [kg/s] Mass flux of both mineral and organic sediment from the bay to the marsh
 
@@ -294,12 +302,12 @@ class Bmftc:
             self._Be,
             self._amp,
             self._RSLR,
-            Fm,
+            Fm,             # variable
             self._lamda,
             self._dist,
-            self._dmo,
-            self._rhob,
-            rhom,
+            self._dmo,      # variable
+            self._rhob,     # variable
+            rhom,           # variable
             self._seagrass_on,
             self._seagrass[yr, :],
             self,
@@ -334,7 +342,7 @@ class Bmftc:
 
         target_x_m = math.ceil(fetch_ODE[-1]) + x_b_int  # New (potential) first marsh cell
         if target_x_m >= self._x_f:  # Forest or bayside barrier edge (i.e., upland MHW shoreline) cannot erode from bay processes
-            self._bfo = self._bfo + (self._x_f - self._x_m) - 2  # Marsh edge can't be greater than or equal to forest edge
+            self._bfo = self._bfo + (self._x_f - self._x_m) - 1  # Marsh edge can't be greater than or equal to forest edge
         else:
             self._bfo = fetch_ODE[-1]  # Set new fetch from funBAY
 
@@ -367,7 +375,7 @@ class Bmftc:
         if self._db < self._Bay_depth[0]:
             self._OCb[yr] = 0.05
 
-        self._rhob = 1 / ((1 - self._OCb[yr]) / self._rhos + self._OCb[yr] / self._rhoo)  # [kg/m3] Density of bay sediment
+        self._rhob = 1 / ((1 - self._OCb[yr - 1]) / self._rhos + self._OCb[yr - 1] / self._rhoo)  # [kg/m3] Density of bay sediment
 
         if int(self._bfo) <= 10:
             self._drown_break = 1
@@ -377,20 +385,31 @@ class Bmftc:
 
         self._x_m = math.ceil(self._bfo) + x_b_int  # New first marsh cell
         try:
-            self._x_f = np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
+            self._x_f = max(self._x_m + 1, np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0])
         except IndexError:
             self._x_f = self._B
             self._drown_break = 1  # If x_f can't be found, barrier has drowned
 
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
-        Dcells = self._Marsh_edge[yr - 1] - self._x_m  # Gives the change in the number of marsh cells
+        Dcells = int(self._Marsh_edge[yr - 1] - self._x_m)  # Gives the change in the number of marsh cells
 
         if Dcells > 0:  # Prograde the marsh, with new marsh cells having the same elevation as the previous marsh edge
             tempelevation[0: int(Dcells)] = self._elevation[yr - 1, int(self._Marsh_edge[yr - 1])]
             # Account for mineral and organic material deposited in new marsh cells
+            new_marsh_height = self._db  # New marsh deposited up to MHW
+            total_mass_dep = new_marsh_height / (((1 - self._OCb[yr - 1]) / (self._rhos * 1000)) + (self._OCb[yr - 1] / (self._rhoo * 1000)))  # [g] Total mass to be deposited as new marsh in previous bay cell(s)
+            min_mass_dep = total_mass_dep * (1 - self._OCb[yr - 1])  # [g] Mass of mineral sediment deposited in new marsh cell from marsh edge progradation
+            org_mass_dep = total_mass_dep * self._OCb[yr - 1]  # [g] Mass of organic sediment deposited in new marsh cell from marsh edge progradation
+            self._mineral_dep[yr, self._x_m: self._x_m + Dcells] += min_mass_dep
+            self._organic_dep_alloch[yr, self._x_m: self._x_m + Dcells] += org_mass_dep
+            Fm_min_prog = (min_mass_dep + Dcells) / 1000  # [kg/yr] Flux of mineral sediment from the bay from marsh edge progradation
+            Fm_org_prog = (org_mass_dep + Dcells) / 1000  # [kg/yr] Flux of organic sediment from the bay from marsh edge progradation
+        else:
+            Fm_min_prog = 0
+            Fm_org_prog = 0
 
         self._msl[yr] = self._msl[yr - 1] + self._SLR
-        self._elevation[yr, 0: self._x_m] = self._msl[yr] + self._amp - self._db  # All bay cells have the same depth
+        self._elevation[yr, :self._x_m] = self._msl[yr] + self._amp - self._db  # All bay cells have the same depth
 
         # Mineral and organic marsh deposition
         (
@@ -407,7 +426,7 @@ class Bmftc:
             tempelevation,
             self._msl[yr],
             self._C_e[yr],
-            self._OCb[yr],
+            self._OCb[yr - 1],
             self._tr,
             self._numiterations,
             self._P,
@@ -430,8 +449,11 @@ class Bmftc:
         self._organic_dep_alloch[yr, self._x_m: self._x_f + 1] = temporg_alloch  # [g] Allochthonous organic material deposited in a given year
         self._bgb_sum[yr] = np.sum(tempbgb)  # [g] Belowground biomass deposition summed across the marsh platform. Saved through time without decomposition for analysis
 
+        self._Fm_min += Fm_min_prog  # [kg/yr] Add fluxes deposited at marsh edge to fluxes deposited on marsh platform
+        self._Fm_org += Fm_org_prog  # [kg/yr] Add fluxes deposited at marsh edge to fluxes deposited on marsh platform
+
         try:
-            self._x_f = np.where(self._elevation[yr, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0]
+            self._x_f = max(self._x_m + 1, np.where(self._elevation[yr - 1, :] > self._msl[yr] + self._amp - self._Dmin + 0.03)[0][0])
         except IndexError:
             self._x_f = self._B
             self._drown_break = 1  # If x_f can't be found, barrier has drowned
@@ -494,6 +516,8 @@ class Bmftc:
                 self._bfo += 1  # Increase the bay fetch by one cell
                 self._x_m += 1  # Update the new location of the marsh edge
 
+        self._x_f = max(self._x_m + 1, self._x_f)  # "Forest" edge can't be less than or equal to marsh edge
+
         if F == 1:  # If flooding occurred, adjust marsh flux
             # Calculate the amount of organic and mineral sediment liberated from the flooded cells
             FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b)
@@ -519,6 +543,7 @@ class Bmftc:
         self._Marsh_edge[yr] = self._x_m
         self._Forest_edge[yr] = self._x_f
         self._Bay_depth[yr] = self._db
+        self._BaySedDensity[self._time_index] = self._rhob
 
         if 0 < self._x_m < self._B:
             self._dmo = self._msl[yr] + self._amp - self._elevation[yr, self._x_m]
@@ -706,3 +731,23 @@ class Bmftc:
     @property
     def C_e(self):
         return self._C_e
+
+    @property
+    def fluxes(self):
+        return self._fluxes
+
+    @property
+    def BaySedDensity(self):
+        return self._BaySedDensity
+
+    @property
+    def rhomt(self):
+        return self._rhomt
+
+    @property
+    def massmt(self):
+        return self._massmt
+
+    @property
+    def rhob(self):
+        return self._rhob
