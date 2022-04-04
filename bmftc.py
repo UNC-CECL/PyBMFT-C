@@ -254,7 +254,7 @@ class Bmftc:
         yr = self._time_index + self._startyear
 
         # Calculate the density of the marsh edge cell
-        boundyr = next(i for i, x in enumerate(self._elevation[:, self._x_m]) if x > (self._msl[yr - 1] + self._amp - self._db))
+        boundyr = next(i for i, x in enumerate(self._elevation[:, self._x_m]) if x > (self._msl[yr - 1] + self._amp - self._db))  # First year where elevation of marsh edge is above depth of erosion (i.e., bay bottom elevation)
         if boundyr == 0:
             us = self._elevation[0, self._x_m] - (self._msl[yr - 1] + self._amp - self._db)
             usmass = us * self._rhos  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
@@ -262,7 +262,7 @@ class Bmftc:
             usmass = 0  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
 
         # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg]
-        massm = np.sum(self._organic_dep_autoch[:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[:, self._x_m]) / 1000 + np.sum(self._mineral_dep[:, self._x_m]) / 1000 + usmass
+        massm = np.sum(self._organic_dep_autoch[boundyr:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[boundyr:, self._x_m]) / 1000 + np.sum(self._mineral_dep[boundyr:, self._x_m]) / 1000 + usmass
         # Volume of sediment to be eroded at the current marsh edge above the depth of erosion [m3]
         volm = self._elevation[yr - 1, self._x_m] - (self._msl[yr - 1] + self._amp - self._db)
 
@@ -404,6 +404,15 @@ class Bmftc:
             self._organic_dep_alloch[yr, self._x_m: self._x_m + Dcells] += org_mass_dep
             Fm_min_prog = (min_mass_dep + Dcells) / 1000  # [kg/yr] Flux of mineral sediment from the bay from marsh edge progradation
             Fm_org_prog = (org_mass_dep + Dcells) / 1000  # [kg/yr] Flux of organic sediment from the bay from marsh edge progradation
+        elif Dcells < 0:  # Marsh eroded
+            # Account for negative deposition (i.e., erosion) in stratigraphic record)
+            for k in range(1, abs(Dcells) + 1):
+                boundyr = next(i for i, x in enumerate(self._elevation[:, self._x_m - k]) if x > (self._msl[yr - 1] + self._amp - self._db))  # First year where elevation of marsh edge is above depth of erosion (i.e., bay bottom elevation)
+                self._organic_dep_autoch[yr, self._x_m - k] -= np.sum(self._organic_dep_autoch[boundyr:, self._x_m - k])  # Subtract eroded mass from depositional record
+                self._organic_dep_alloch[yr, self._x_m - k] -= np.sum(self._organic_dep_alloch[boundyr:, self._x_m - k])  # Subtract eroded mass from depositional record
+                self._mineral_dep[yr, self._x_m - k] -= np.sum(self._mineral_dep[boundyr:, self._x_m - k])  # Subtract eroded mass from depositional record
+            Fm_min_prog = 0
+            Fm_org_prog = 0
         else:
             Fm_min_prog = 0
             Fm_org_prog = 0
@@ -514,6 +523,10 @@ class Bmftc:
                 F = 1
                 self._edge_flood[yr] += 1  # Count that cell as a flooded cell
                 self._bfo += 1  # Increase the bay fetch by one cell
+                boundyr = next(i for i, x in enumerate(self._elevation[:, self._x_m]) if x > (self._msl[yr - 1] + self._amp - self._db))  # First year where elevation of marsh edge is above depth of erosion (i.e., bay bottom elevation)
+                self._organic_dep_autoch[yr, self._x_m] -= np.sum(self._organic_dep_autoch[boundyr:, self._x_m])  # Subtract eroded mass from depositional record
+                self._organic_dep_alloch[yr, self._x_m] -= np.sum(self._organic_dep_alloch[boundyr:, self._x_m])  # Subtract eroded mass from depositional record
+                self._mineral_dep[yr, self._x_m] -= np.sum(self._mineral_dep[boundyr:, self._x_m])  # Subtract eroded mass from depositional record
                 self._x_m += 1  # Update the new location of the marsh edge
 
         self._x_f = max(self._x_m + 1, self._x_f)  # "Forest" edge can't be less than or equal to marsh edge
