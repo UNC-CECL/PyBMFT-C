@@ -379,7 +379,7 @@ class Bmftc:
 
         if int(self._bfo) <= 10:
             self._drown_break = 1
-            print("Marsh has completely filled the basin")
+            print("PyBMFT-C: Marsh has completely filled the basin.")
             self._endyear = yr
             return  # Exit program
 
@@ -389,6 +389,9 @@ class Bmftc:
         except IndexError:
             self._x_f = self._B
             self._drown_break = 1  # If x_f can't be found, barrier has drowned
+            print("PyBMFT-C: Barrier has drowned.")
+            self._endyear = yr
+            return  # Exit program
 
         tempelevation = self._elevation[yr - 1, self._x_m: self._x_f + 1]
         Dcells = int(self._Marsh_edge[yr - 1] - self._x_m)  # Gives the change in the number of marsh cells
@@ -419,6 +422,8 @@ class Bmftc:
 
         self._msl[yr] = self._msl[yr - 1] + self._SLR
         self._elevation[yr, :self._x_m] = self._msl[yr] + self._amp - self._db  # All bay cells have the same depth
+        # NEED TO ACCOUNT FOR BAY DEPOSITION HERE TOO
+
 
         # Mineral and organic marsh deposition
         (
@@ -466,6 +471,9 @@ class Bmftc:
         except IndexError:
             self._x_f = self._B
             self._drown_break = 1  # If x_f can't be found, barrier has drowned
+            print("PyBMFT-C: Barrier has drowned.")
+            self._endyear = yr
+            return  # Exit program
 
         if self._forest_on:
             # Update forest soil organic matter
@@ -563,22 +571,22 @@ class Bmftc:
             self._Edge_ht[yr] = self._dmo
         elif int(self._bfo) <= 10:  # Condition for if the marsh has expanded to fill the basin
             self._drown_break = 1
-            print("Marsh has completely filled the basin")
+            print("PyBMFT-C: Marsh has completely filled the basin")
             self._endyear = yr
             return  # Exit program
         elif self._x_m <= 10:  # Another condition for if the marsh has expanded to fill the basin
             self._drown_break = 1
-            print("Marsh has expanded to fill the basin.")
+            print("PyBMFT-C: Marsh has expanded to fill the basin.")
             self._endyear = yr
             return  # Exit program
         elif self._x_m >= len(self._elevation[0, :]) - 10:  # Condition for if the marsh has eroded completely away
             self._drown_break = 1
-            print("Marsh has retreated. Basin is completely flooded.")
+            print("PyBMFT-C: Marsh has retreated. Basin is completely flooded.")
             self._endyear = yr
             return  # Exit program
         elif self._db < 0.2:  # Condition for if the bay gets very shallow. Should this number be calculated within the code?
             self._drown_break = 1
-            print("Bay has filled in to form marsh.")
+            print("PyBMFT-C: Bay has filled in to form marsh.")
             self._endyear = yr
             return  # Exit program
 
