@@ -334,7 +334,11 @@ class Bmftc:
             fetch_ODE = ode.y[0, :]
             db_ODE = ode.y[1, :]
         except ValueError:  # IR 25Feb22: Temprorary fix for rare ODE bug
-            print("  ODE Value Error")
+            print("  <-- ODE Value Error: RSLR", self.RSLRi, " Co", self._Coi)
+            fetch_ODE = [self._bfo]
+            db_ODE = [self._db]
+        except OverflowError:
+            print("  <-- ODE Overflow Error: RSLR", self.RSLRi, " Co", self._Coi)
             fetch_ODE = [self._bfo]
             db_ODE = [self._db]
 
