@@ -156,4 +156,76 @@ plt.plot(bmftc.Marsh_edge[bmftc.startyear:])
 plt.xlabel("Year")
 plt.ylabel("Marsh Edge Location [m cross-shore]")
 
+# ===========
+plt.figure()
+fig = plt.gcf()
+fig.set_size_inches(7, 15)
+
+plt.subplot(4, 1, 1)
+plt.plot(bmftc.OCb[bmftc.startyear: bmftc.endyear + 1])
+plt.xlabel("Time [yr]")
+plt.ylabel("Bay Org Cont")
+
+plt.subplot(4, 1, 2)
+plt.plot(bmftc.BaySedDensity[:bmftc.endyear + 1])
+plt.xlabel("Time [yr]")
+plt.ylabel("Bay Sed Dens (rhob)")
+
+plt.subplot(4, 1, 3)
+plt.plot(bmftc.rhomt[:bmftc.endyear + 1])
+plt.xlabel("Time [yr]")
+plt.ylabel("Mar Edg Dens (rhom)")
+
+plt.subplot(4, 1, 4)
+plt.plot(bmftc.Bay_depth[bmftc.startyear: bmftc.endyear + 1])
+plt.xlabel("Time [yr]")
+plt.ylabel("Bay Depth")
+
+# ===========
+plt.figure()
+fig = plt.gcf()
+fig.set_size_inches(12, 8)
+plt.rcParams.update({"font.size": 12})
+
+# Fe_min
+plt.subplot(2, 4, 1)
+plt.plot(bmftc.fluxes[0, bmftc.startyear: bmftc.endyear + 1])
+plt.ylabel("Fe_min: marsh to bay")
+
+# Fe_org
+plt.subplot(2, 4, 2)
+plt.plot(bmftc.fluxes[1, bmftc.startyear: bmftc.endyear + 1])
+plt.ylabel("Fe_org: marsh to bay")
+
+# Fm_min
+plt.subplot(2, 4, 3)
+plt.plot(bmftc.fluxes[2, bmftc.startyear: bmftc.endyear + 1])
+plt.ylabel("Fm_min: bay to marsh")
+
+# Fm_org
+plt.subplot(2, 4, 4)
+plt.plot(bmftc.fluxes[3, bmftc.startyear: bmftc.endyear + 1])
+plt.ylabel("Fm_org: bay to marsh")
+
+# Fc_min
+plt.subplot(2, 4, 5)
+plt.plot(bmftc.fluxes[4, bmftc.startyear: bmftc.endyear + 1])
+plt.ylabel("Fc_min: external to bay")
+
+# Fc_org
+plt.subplot(2, 4, 6)
+plt.plot(bmftc.fluxes[5, bmftc.startyear: bmftc.endyear + 1])
+plt.ylabel("Fc_org: external to bay")
+
+# Fb_min
+plt.subplot(2, 4, 7)
+plt.plot(bmftc.fluxes[6, bmftc.startyear: bmftc.endyear + 1])
+plt.ylabel("Fb_min: net flux into bay")
+
+# Fb_org
+plt.subplot(2, 4, 8)
+plt.plot(bmftc.fluxes[7, bmftc.startyear: bmftc.endyear + 1])
+plt.ylabel("Fb_org: net flux into bay")
+plt.tight_layout()
+
 plt.show()
