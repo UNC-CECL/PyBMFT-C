@@ -438,8 +438,16 @@ class Bmftc:
             Fm_min_prog = 0
             Fm_org_prog = 0
 
-        # Update bay depth and add (or subtract) bay deposition
+        # Update bay depth
         self._elevation[yr, :self._x_m] = self._msl[yr] + self._amp - self._db  # All bay cells have the same depth
+
+        # Add( or subtract) bay deposition
+        db_change = (self._msl[yr] + self._amp - self._db) - (self._msl[yr - 1] + self._amp - self._Bay_depth[yr - 1])  # [m] Change in bay depth for this year
+        total_mass_dep = db_change / (((1 - self._OCb[yr - 1]) / (self._rhos * 1000)) + (self._OCb[yr - 1] / (self._rhoo * 1000)))  # [g] Total mass to be deposited in bay cells
+        min_mass_dep = total_mass_dep * (1 - self._OCb[yr - 1])  # [g] Mass of mineral sediment deposited in bay cells
+        org_mass_dep = total_mass_dep * self._OCb[yr - 1]  # [g] Mass of organic sediment deposited in bay cells
+        self._mineral_dep[yr, x_b_int: self._x_m] += min_mass_dep
+        self._organic_dep_alloch[yr, x_b_int: self._x_m] += org_mass_dep
 
         # Mineral and organic marsh deposition
         (
