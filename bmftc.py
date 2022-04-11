@@ -273,10 +273,8 @@ class Bmftc:
 
         rhom = massm / volm  # [kg/m3] Bulk density of marsh edge
         if rhom > self._rhos:
-            print("  <-- rhom =", rhom, ", massm =", massm, ", volm =", volm)
             rhom = self._rhos
         elif rhom < self._rhoo:
-            print("  <-- rhom =", rhom, ", massm =", massm, ", volm =", volm)
             rhom = self._rhoo
         self._rhomt[self._time_index] = rhom
         self._massmt[self._time_index] = massm
