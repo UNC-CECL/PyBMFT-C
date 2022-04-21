@@ -141,7 +141,9 @@ class Bmftc:
 
         # Calculate additional variables
         self._SLR = self._RSLR * (3600 * 24 * 365)  # Convert to m/yr
-        self._rhob = self._rhos  # [kg/m3] Bulk density of bay, which is initially all mineral
+        self._rhou = 1 / ((1 - 0.05) / self._rhos + 0.05 / self._rhoo)  # Bulk density of underlying bay, 95% mineral
+        # self._rhob = self._rhos  # [kg/m3] Bulk density of bay, which is initially all mineral
+        self._rhob = self._rhou
         self._tr = self._amp * 2  # [m] Tidal range
         self._Dmax = 0.7167 * 2 * self._amp - 0.483  # [m] Maximum depth below high water that marsh veg can grow
 
@@ -260,11 +262,11 @@ class Bmftc:
             boundyr_list = []
         if len(boundyr_list) >= 1:
             boundyr = boundyr_list[-1] + 1  # Most recent year where elevation of marsh edge has just risen above depth of erosion (i.e., bay bottom elevation)
-            usmass = 0  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
+            usmass = 0  # [kg] Mass of sediment underlying marsh at marsh edge
         else:
             boundyr = 0
             us = self._elevation[0, self._x_m] - (self._msl[yr - 1] + self._amp - self._db)
-            usmass = us * self._rhos  # [kg] Mass of pure mineral sediment underlying marsh at marsh edge
+            usmass = us * self._rhou  # [kg] Mass of sediment underlying marsh at marsh edge
 
         # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg]
         massm = np.sum(self._organic_dep_autoch[boundyr:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[boundyr:, self._x_m]) / 1000 + np.sum(self._mineral_dep[boundyr:, self._x_m]) / 1000 + usmass
@@ -359,7 +361,7 @@ class Bmftc:
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
 
         # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
-        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b, self._msl, self._amp, self._db)
+        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhou, self._x_b, self._msl, self._amp, self._db)
         Fe_org /= 1000  # [kg/yr] Annual net flux of organic sediment to the bay due to erosion
         Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
 
@@ -571,7 +573,7 @@ class Bmftc:
 
         if F == 1:  # If flooding occurred, adjust marsh flux
             # Calculate the amount of organic and mineral sediment liberated from the flooded cells
-            FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b, self._msl, self._amp, self._db)
+            FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhou, self._x_b, self._msl, self._amp, self._db)
             # Adjust flux of mineral sediment to the marsh
             self._Fm_min -= FF_min
             # Adjust flux of organic sediment to the marsh
