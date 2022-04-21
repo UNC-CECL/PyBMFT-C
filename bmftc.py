@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _4 April 2022_ by _IRB Reeves_
+Last updated _20 April 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -359,7 +359,7 @@ class Bmftc:
         Fc_min = Fc * (1 - self._OCb[yr - 1])  # [kg/yr] Annual net flux of mineral sediment out of/into the bay from outside the system
 
         # Calculate the flux of organic and mineral sediment to the bay from erosion of the marsh
-        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b)
+        Fe_org, Fe_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b, self._msl, self._amp, self._db)
         Fe_org /= 1000  # [kg/yr] Annual net flux of organic sediment to the bay due to erosion
         Fe_min /= 1000  # [kg/yr] Annual net flux of mineral sediment to the bay due to erosion
 
@@ -381,6 +381,7 @@ class Bmftc:
 
         # If bay has eroded down to depth below initial bay bottom, there is only mineral sediment remaining
         # if self._db > self._Bay_depth[0]:  # Sign flipped: this way it does what the comment above says it's supposed to do
+        # if self._msl[yr] + self._amp - self._db < (self._msl[0] + self._amp - self._Bay_depth[0]):  # This version is based on elevations, not depths
         if self._db < self._Bay_depth[0]:
             self._OCb[yr] = 0.05
 
@@ -570,7 +571,7 @@ class Bmftc:
 
         if F == 1:  # If flooding occurred, adjust marsh flux
             # Calculate the amount of organic and mineral sediment liberated from the flooded cells
-            FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b)
+            FF_org, FF_min = calcFE(self._bfo, self._fetch[yr - 1], self._elevation, yr, self._organic_dep_autoch, self._organic_dep_alloch, self._mineral_dep, self._rhos, self._x_b, self._msl, self._amp, self._db)
             # Adjust flux of mineral sediment to the marsh
             self._Fm_min -= FF_min
             # Adjust flux of organic sediment to the marsh
@@ -801,3 +802,7 @@ class Bmftc:
     @property
     def rhob(self):
         return self._rhob
+
+    @property
+    def name(self):
+        return self._name
