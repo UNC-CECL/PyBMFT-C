@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _5 July 2021_ by _IRB Reeves_
+Last updated _20 April 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -78,14 +78,18 @@ def evolvemarsh(
     # Mineral Deposition
     coeff = -0.002  # Coefficient of -0.0031 is a fitted parameter for realistic marsh topography
     distance = 0  # [m] Initialize, distance from marsh edge
+    pond = False
     for xx in range(L):
         if bgb[xx] > 0:
+            pond = False
             distance += 1  # [m]
             C[xx] = C_e * math.exp(coeff * distance)  # [kg/m3] Concentration at each marsh cell. Coefficient of -0.0031 is a fitted parameter for realistic marsh topography
         else:
+            if not pond:
+                C_e = C_e * 0.9  # Decrease concentration at the new "marsh edge" by 10% with each subsequent pond formation
+                pond = True
             distance = 1  # [m]
-            C_e = C_e * 0.9  # [kg/m3] Decrease concentration at the new "marsh edge" by 10% with each subsequent pond formation
-            C[xx] = C_e * math.exp(coeff * distance)  # [kg/m3] Concentration at each marsh cell. Coefficient of -0.0031 is a fitted parameter for realistic marsh topography
+            C[xx] = C_e
 
     floodfraction = np.sum(time_submerged, axis=0) / P  # Portion of the tidal cycle that each point is submerged
 
