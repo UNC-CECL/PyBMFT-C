@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _20 January 2021_ by _IRB Reeves_
+Last updated _25 April 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import time
@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore")
 # ==================================================================================================================================================================================
 # Create an instance of the BMI class
 bmftc = Bmftc(
-            name="default",
+            name="PyBMFT-C",
             time_step_count=125,
             relative_sea_level_rise=8,
             reference_concentration=50,
@@ -56,6 +56,8 @@ plt.ylabel("Organic Deposition Alloch [g]")
 # Record start time
 Time = time.time()
 
+print(bmftc.name)
+
 # Loop through time
 for time_step in range(int(bmftc.dur)):
 
@@ -66,10 +68,11 @@ for time_step in range(int(bmftc.dur)):
     bmftc.update()
 
     # Plot each time step
-    ax1.plot(bmftc.organic_dep_autoch[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
-    ax2.plot(bmftc.mineral_dep[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
-    ax3.plot(bmftc.elevation[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
-    ax4.plot(bmftc.organic_dep_alloch[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+    if time_step % 5 == 0:
+        ax1.plot(bmftc.organic_dep_autoch[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+        ax2.plot(bmftc.mineral_dep[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+        ax3.plot(bmftc.elevation[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
+        ax4.plot(bmftc.organic_dep_alloch[bmftc.startyear + time_step, bmftc.x_m: bmftc.x_f + 1], label=str(time_step))
 
 # Print elapsed time of simulation
 print()
@@ -109,15 +112,15 @@ marshOC_final = marshOCP_final / 100 * (marshOM_final + marshMM_final)
 # ==================================================================================================================================================================================
 # Plot
 
-plt.figure()
-plt.plot(organic_dep_last30yrs)
-plt.xlabel("Year (previous 30)")
-plt.ylabel("Organic Deposition [g]")
+# plt.figure()
+# plt.plot(organic_dep_last30yrs)
+# plt.xlabel("Year (previous 30)")
+# plt.ylabel("Organic Deposition [g]")
 
-plt.figure()
-plt.plot(mineral_dep_last30yrs)
-plt.xlabel("Year (previous 30)")
-plt.ylabel("Mineral Deposition [g]")
+# plt.figure()
+# plt.plot(mineral_dep_last30yrs)
+# plt.xlabel("Year (previous 30)")
+# plt.ylabel("Mineral Deposition [g]")
 
 # plt.figure()
 # plt.plot(bmftc.organic_dep_autoch[bmftc.endyear - 30: bmftc.endyear + 1, bmftc.x_m: bmftc.x_f + 1])
@@ -134,27 +137,28 @@ for t in range(bmftc.startyear, bmftc.endyear, 10):
     plt.plot(bmftc.elevation[t, :])
 plt.xlabel("Distance")
 plt.ylabel("Elevation [m MSL]")
+plt.title(bmftc.name)
 
-# Seagrass: bay depth and shoot density
-plt.figure()
-fig = plt.gcf()
-fig.set_size_inches(12, 14)
-plt.rcParams.update({"font.size": 12})
-
-plt.subplot(3,1,1)
-plt.plot(bmftc.Bay_depth[bmftc.startyear:] * -1)
-plt.xlabel("Year")
-plt.ylabel("Bay Depth [m MSL]")
-
-plt.subplot(3,1,2)
-plt.plot(bmftc.seagrass[bmftc.startyear: , 1])
-plt.xlabel("Year")
-plt.ylabel("Shoot Density [shoots/m^2]")
-
-plt.subplot(3,1,3)
-plt.plot(bmftc.Marsh_edge[bmftc.startyear:])
-plt.xlabel("Year")
-plt.ylabel("Marsh Edge Location [m cross-shore]")
+# # Seagrass: bay depth and shoot density
+# plt.figure()
+# fig = plt.gcf()
+# fig.set_size_inches(12, 14)
+# plt.rcParams.update({"font.size": 8})
+#
+# plt.subplot(3,1,1)
+# plt.plot(bmftc.Bay_depth[bmftc.startyear:] * -1)
+# plt.xlabel("Year")
+# plt.ylabel("Bay Depth [m MSL]")
+#
+# plt.subplot(3,1,2)
+# plt.plot(bmftc.seagrass[bmftc.startyear: , 1])
+# plt.xlabel("Year")
+# plt.ylabel("Shoot Density [shoots/m^2]")
+#
+# plt.subplot(3,1,3)
+# plt.plot(bmftc.Marsh_edge[bmftc.startyear:])
+# plt.xlabel("Year")
+# plt.ylabel("Marsh Edge Location [m cross-shore]")
 
 # ===========
 plt.figure()
@@ -185,7 +189,7 @@ plt.ylabel("Bay Depth")
 plt.figure()
 fig = plt.gcf()
 fig.set_size_inches(12, 8)
-plt.rcParams.update({"font.size": 12})
+plt.rcParams.update({"font.size": 8})
 
 # Fe_min
 plt.subplot(2, 4, 1)
