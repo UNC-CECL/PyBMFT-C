@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _20 April 2022_ by _IRB Reeves_
+Last updated _25 April 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -141,8 +141,7 @@ class Bmftc:
 
         # Calculate additional variables
         self._SLR = self._RSLR * (3600 * 24 * 365)  # Convert to m/yr
-        self._rhou = 1 / ((1 - 0.05) / self._rhos + 0.05 / self._rhoo)  # Bulk density of underlying bay, 95% mineral
-        # self._rhob = self._rhos  # [kg/m3] Bulk density of bay, which is initially all mineral
+        self._rhou = 1 / ((1 - 0.05) / self._rhos + 0.05 / self._rhoo)  # Bulk density of underlying bay, 95% mineral, 5% organic
         self._rhob = self._rhou
         self._tr = self._amp * 2  # [m] Tidal range
         self._Dmax = 0.7167 * 2 * self._amp - 0.483  # [m] Maximum depth below high water that marsh veg can grow
@@ -372,20 +371,22 @@ class Bmftc:
         self._BayOM[yr] = Fb_org  # [kg/yr] Mass of organic sediment stored in the bay in each year
         self._BayMM[yr] = Fb_min  # [kg/yr] Mass of mineral sediment stored in the bay in each year
 
-        if Fb_org > 0 and Fb_min > 0:
-            self._OCb[yr] = Fb_org / (Fb_org + Fb_min) + 0.05  # BIG CHANGE HERE
-        elif Fb_org > 0:
-            self._OCb[yr] = 1  # 100% organic
-        elif Fb_min > 0:
-            self._OCb[yr] = 0  # 100% mineral
-        else:
-            self._OCb[yr] = self._OCb[yr - 1]
+        # if Fb_org > 0 and Fb_min > 0:
+        #     self._OCb[yr] = Fb_org / (Fb_org + Fb_min) + 0.05  # BIG CHANGE HERE
+        # elif Fb_org > 0:
+        #     self._OCb[yr] = 1  # 100% organic
+        # elif Fb_min > 0:
+        #     self._OCb[yr] = 0  # 100% mineral
+        # else:
+        #     self._OCb[yr] = self._OCb[yr - 1]
+        #
+        # # If bay has eroded down to depth below initial bay bottom, there is only mineral sediment remaining
+        # # if self._db > self._Bay_depth[0]:  # Sign flipped: this way it does what the comment above says it's supposed to do
+        # # if self._msl[yr] + self._amp - self._db < (self._msl[0] + self._amp - self._Bay_depth[0]):  # This version is based on elevations, not depths
+        # if self._db < self._Bay_depth[0]:
+        #     self._OCb[yr] = 0.05
 
-        # If bay has eroded down to depth below initial bay bottom, there is only mineral sediment remaining
-        # if self._db > self._Bay_depth[0]:  # Sign flipped: this way it does what the comment above says it's supposed to do
-        # if self._msl[yr] + self._amp - self._db < (self._msl[0] + self._amp - self._Bay_depth[0]):  # This version is based on elevations, not depths
-        if self._db < self._Bay_depth[0]:
-            self._OCb[yr] = 0.05
+        self._OCb[yr] = 0.05  # IR hardwired 20Apr22: prevents OCb from getting really large over long (>150 yr) runs
 
         self._rhob = 1 / ((1 - self._OCb[yr - 1]) / self._rhos + self._OCb[yr - 1] / self._rhoo)  # [kg/m3] Density of bay sediment
 
@@ -550,7 +551,7 @@ class Bmftc:
 
         F = 0
         while self._x_m < self._B and self._x_m < self._x_f:
-            if self._organic_dep_autoch[yr, self._x_m] > 0 or (self._msl[yr] - self._amp) < self._elevation[yr, self._x_m] < (self._msl[yr] + self._amp):  # If organic deposition is greater than zero, marsh is still growing
+            if self._organic_dep_autoch[yr, self._x_m] > 0 or (self._msl[yr] + self._amp - self._elevation[yr, self._x_m]) < self._Dmax:
                 break
             else:  # Otherwise, the marsh has drowned, and will be eroded to form new bay
                 F = 1
@@ -808,3 +809,7 @@ class Bmftc:
     @property
     def name(self):
         return self._name
+
+    @property
+    def Dmax(self):
+        return self._Dmax
