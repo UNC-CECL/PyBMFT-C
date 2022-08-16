@@ -17,7 +17,6 @@ from funBAY import POOLstopp5
 from calcFE import calcFE
 from evolvemarsh import evolvemarsh
 from decompose import decompose
-from growseagrass import growseagrass
 
 
 class Bmftc:
@@ -72,9 +71,6 @@ class Bmftc:
             unknown_fm_org=0,
             unknown_fm_flood=0,
             sed_flux_pond=0,
-
-            # Seagrass
-            seagrass_on=False,
 
     ):
         """Bay-Marsh-Forest Transect Carbon Model (Python version)
@@ -209,11 +205,6 @@ class Bmftc:
         self._organic_dep_autoch[:self._startyear, self._x_m: self._x_m + self._mwo] = self._orgAT_25
         self._mineral_dep[:self._startyear, self._x_m: self._x_m + self._mwo] = self._min_25
 
-        # Initialize seagrass
-        self._seagrass_on = seagrass_on  # Boolean controls whether seagrass is turned on or off
-        self._seagrass = np.zeros([self._endyear, self._B])  # Stores shoot density of seagrass in each cell for each year
-        self._seagrass_density_table = np.load("Input/PyBMFT-C/seagrass_density_table.npy")
-
         # Set options for ODE solver
         POOLstopp5.terminal = True
 
@@ -282,18 +273,6 @@ class Bmftc:
 
         Fm = (self._Fm_min + self._Fm_org) / (3600 * 24 * 365)  # [kg/s] Mass flux of both mineral and organic sediment from the bay to the marsh
 
-        # Grow seagrass
-        if self._seagrass_on:
-            self._seagrass = growseagrass(
-                self._seagrass,
-                self._seagrass_density_table,
-                self._elevation,
-                self._x_m,
-                self._msl,
-                self._amp,
-                yr,
-            )
-
         # Parameters to feed into ODE
         PAR = [
             self._rhos,
@@ -313,8 +292,6 @@ class Bmftc:
             self._dmo,      # variable
             self._rhob,     # variable
             rhom,           # variable
-            self._seagrass_on,
-            self._seagrass[yr, :],
             self,
         ]
 
@@ -715,10 +692,6 @@ class Bmftc:
         return self._Dmin
 
     @property
-    def seagrass(self):
-        return self._seagrass
-
-    @property
     def Marsh_edge(self):
         return self._Marsh_edge
 
@@ -741,10 +714,6 @@ class Bmftc:
     @property
     def wind(self):
         return self._wind
-
-    @property
-    def seagrass_on(self):
-        return self._seagrass_on
 
     @property
     def Forest_edge(self):
