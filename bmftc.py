@@ -1,7 +1,7 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
-Last updated _25 April 2022_ by _IRB Reeves_
+Last updated _16 August 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
 import numpy as np
@@ -56,20 +56,19 @@ class Bmftc:
             maximum_biomass_marsh=2500,
             veg_minimum_depth=0,
             maximum_biomass_forest=5000,
-            forest_aboveground_unknown_a=4,
-            forest_aboveground_unknown_b=2,
-            forest_aboveground_unknown_f0=0.0001,
-            forest_aboveground_unknown_fwet=5,
-            forest_aboveground_unknown_fgrow=2,
+            tree_biomass_forest_edge=4,
+            tree_growth_rate=2,
+            forest_background_carbon_accumulation=0.0001,
+            forest_carbon_layer_wetted_soils=5,
+            forest_belowground_decay_constant=2,
             zero_decomposition_depth_marsh=0.4,
             decomposition_coefficient_marsh=0.1,
             forest_on=True,
 
             # Bay/marsh
             tidal_iterations=500,
-            unknown_fm_min=0,
-            unknown_fm_org=0,
-            unknown_fm_flood=0,
+            mineral_flux_bay_to_marsh=0,
+            organic_flux_bay_to_marsh=0,
             sed_flux_pond=0,
 
     ):
@@ -121,18 +120,17 @@ class Bmftc:
         self._BMax = maximum_biomass_marsh
         self._Dmin = veg_minimum_depth
         self._Bmax_forest = maximum_biomass_forest
-        self._a = forest_aboveground_unknown_a
-        self._b = forest_aboveground_unknown_b
-        self._f0 = forest_aboveground_unknown_f0
-        self._fwet = forest_aboveground_unknown_fwet
-        self._fgrow = forest_aboveground_unknown_fgrow
+        self._a = tree_biomass_forest_edge  # [g/m2] Tree biomass value at marsh-forest boundary (amount of carbon in transition zone from trees)
+        self._b = tree_growth_rate  # Growth rate of trees
+        self._f0 = forest_background_carbon_accumulation  # [g/m2/yr] Background carbon accumulation in the soils accross entire forest
+        self._fwet = forest_carbon_layer_wetted_soils  # Forest carbon layer from wetted soils
+        self._fgrow = forest_belowground_decay_constant  # Exponential decay constant for calculation of belowground forest carbon
         self._mui = zero_decomposition_depth_marsh  # [m] Depth below which decomposition goes to zero in the marsh
         self._mki = decomposition_coefficient_marsh  # Coefficient of decomposition in the marsh
         self._numiterations = tidal_iterations
 
-        self._Fm_min = unknown_fm_min  # Unknown variable
-        self._Fm_org = unknown_fm_org  # Unknown variable
-        self._Fm_flood = unknown_fm_flood  # Unknown variable
+        self._Fm_min = mineral_flux_bay_to_marsh  # [kg/yr] Mass flux of mineral sediment from the bay to the marsh
+        self._Fm_org = organic_flux_bay_to_marsh  # [kg/yr] Mass flux of organic sediment from the bay to the marsh
         self._Fp_sum = sed_flux_pond  # Amount of sediment taken from ponds to recharge sedimentation to drowning interior marsh
 
         # Calculate additional variables
