@@ -180,8 +180,8 @@ class Bmftc:
         self._tidal_dt = self._P / self._numiterations  # Inundation time
         self._OCb = np.zeros(self._endyear)  # Organic content of uppermost layer of bay sediment, which determines the organic content of suspended material deposited onto the marsh. Initially set to zero.
         self._OCb[:self._endyear + 1] = 0.05
-        self._edge_flood = np.zeros(self._endyear)  # IR 6/8: Undefined variable
-        self._Edge_ht = np.zeros(self._endyear)  # IR 6/24: Undefined variable
+        self._edge_flood = np.zeros(self._endyear)  # Annual count of marsh edge cells flooded
+        self._Edge_ht = np.zeros(self._endyear)  # [m] Height of marsh scarp above MHW
 
         self._marshOM_initial = (np.sum(np.sum(self._orgAL_25)) + np.sum(np.sum(self._orgAT_25))) / 1000  # [kg] Total mass of organic matter in the marsh at the beginning of the simulation (both alloch and autoch)
         self._marshMM_initial = np.sum(np.sum(self._min_25)) / 1000  # [kg] Total mass of mineral matter in the marsh at the beginning of the simulation
