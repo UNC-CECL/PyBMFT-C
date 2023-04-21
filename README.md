@@ -1,7 +1,7 @@
 # PyBMFT-C
 Bay-Marsh-Forest Transect with Carbon model
 
-##About
+## About
 **This is a Python version of the [Coastal Landscape Transect model (*CoLT*) from Valentine et al. (2023)](https://github.com/csdms-contrib/colt).** *CoLT* is originally 
 written in Matlab, and expands upon the Bay Marsh Forest Transect model (*BMFT*) from Kirwan et al. (2016) by integrating 
 carbon cycling dynamics. See Valentine et al. (2023) for a full description of the model. 
