@@ -1,6 +1,15 @@
 """----------------------------------------------------------------------
 PyBMFT-C: Bay-Marsh-Forest Transect Carbon Model (Python version)
 
+A Python version of the Coastal Landscape Transect model (CoLT)
+from Valentine et al. (2023): A dynamic model for the moprhological
+evolution of a backbarrier basin with marshes, mudflats, and an
+upland slope, and their requisite carbon pools.
+
+This Python version (PyBMFT-C) is used in the BarrierBMFT coupled model
+framework. See README documentation for descriptions of discrepencies
+with original CoLT Matlab code.
+
 Last updated _16 August 2022_ by _IRB Reeves_
 ----------------------------------------------------------------------"""
 
@@ -249,14 +258,14 @@ class Bmftc:
         except:
             boundyr_list = []
         if len(boundyr_list) >= 1:
-            boundyr = boundyr_list[-1] + 1  # Most recent year where elevation of marsh edge has just risen above depth of erosion (i.e., bay bottom elevation)
+            boundyr = boundyr_list[-1] + 1  # Most recent year where elevation of marsh edge has just risen above depth of erosion (i.e., bay bottom elevation): this is an ALTERATION/NEW ADDITION not included in original Matlab CoLT version
             usmass = 0  # [kg] Mass of sediment underlying marsh at marsh edge
         else:
             boundyr = 0
             us = self._elevation[0, self._x_m] - (self._msl[yr - 1] + self._amp - self._db)
             usmass = us * self._rhou  # [kg] Mass of sediment underlying marsh at marsh edge
 
-        # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg]
+        # Mass of sediment to be eroded at the current marsh edge above the depth of erosion [kg], constrained by boundyr: this is an ALTERATION/NEW ADDITION not included in original Matlab CoLT version
         massm = np.sum(self._organic_dep_autoch[boundyr:, self._x_m]) / 1000 + np.sum(self._organic_dep_alloch[boundyr:, self._x_m]) / 1000 + np.sum(self._mineral_dep[boundyr:, self._x_m]) / 1000 + usmass
         # Volume of sediment to be eroded at the current marsh edge above the depth of erosion [m3]
         volm = self._elevation[yr - 1, self._x_m] - (self._msl[yr - 1] + self._amp - self._db)
@@ -386,7 +395,7 @@ class Bmftc:
 
         if Dcells > 0:  # Prograde the marsh, with new marsh cells having the same elevation as the previous marsh edge
             tempelevation[0: int(Dcells)] = self._elevation[yr - 1, int(self._Marsh_edge[yr - 1])]
-            # Account for mineral and organic material deposited in new marsh cells
+            # Account for mineral and organic material deposited in new marsh cells: this is an ALTERATION/NEW ADDITION not included in original Matlab CoLT version
             new_marsh_height = self._db  # New marsh deposited up to MHW
             total_mass_dep = new_marsh_height / (((1 - self._OCb[yr - 1]) / (self._rhos * 1000)) + (self._OCb[yr - 1] / (self._rhoo * 1000)))  # [g] Total mass to be deposited as new marsh in previous bay cell(s)
             min_mass_dep = total_mass_dep * (1 - self._OCb[yr - 1])  # [g] Mass of mineral sediment deposited in new marsh cell from marsh edge progradation
@@ -396,7 +405,7 @@ class Bmftc:
             Fm_min_prog = (min_mass_dep + Dcells) / 1000  # [kg/yr] Flux of mineral sediment from the bay from marsh edge progradation
             Fm_org_prog = (org_mass_dep + Dcells) / 1000  # [kg/yr] Flux of organic sediment from the bay from marsh edge progradation
         elif Dcells < 0:  # Marsh eroded
-            # Account for negative deposition (i.e., erosion) in stratigraphic record)
+            # Account for negative deposition (i.e., erosion) in stratigraphic record: this is an ALTERATION/NEW ADDITION not included in original Matlab CoLT version
             for k in range(1, abs(Dcells) + 1):
                 try:
                     boundyr_list = [i for i, x in enumerate(self._elevation[:yr, self._x_m - k]) if x < (self._msl[yr - 1] + self._amp - self._db)]
@@ -418,7 +427,7 @@ class Bmftc:
         # Update bay depth
         self._elevation[yr, :self._x_m] = self._msl[yr] + self._amp - self._db  # All bay cells have the same depth
 
-        # Add( or subtract) bay deposition
+        # Add (or subtract) bay deposition: this is an ALTERATION/NEW ADDITION not included in original Matlab CoLT version
         db_change = (self._msl[yr] + self._amp - self._db) - (self._msl[yr - 1] + self._amp - self._Bay_depth[yr - 1])  # [m] Change in bay depth for this year
         total_mass_dep = db_change / (((1 - self._OCb[yr - 1]) / (self._rhos * 1000)) + (self._OCb[yr - 1] / (self._rhoo * 1000)))  # [g] Total mass to be deposited in bay cells
         min_mass_dep = total_mass_dep * (1 - self._OCb[yr - 1])  # [g] Mass of mineral sediment deposited in bay cells
