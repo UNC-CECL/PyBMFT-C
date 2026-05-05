@@ -26,6 +26,7 @@ import scipy.io
 from scipy.integrate import solve_ivp
 import math
 import bisect
+import os
 
 from buildtransect import buildtransect
 from funBAY import funBAY
@@ -52,6 +53,7 @@ class Bmftc:
             forest_age_initial=60,
             filename_marshspinup="Input/PyBMFT-C/MarshStrat_all_RSLR1_CO50.mat",
             filename_equilbaydepth="Input/PyBMFT-C/Equilibrium Bay Depth.mat",
+            marsh_datadir=r"C:/Users/Lexi/PycharmProjects/BarrierBMFT/Input/PyBMFT-C",
 
             # KV Organic
             bulk_density_mineral=2000,
@@ -164,7 +166,8 @@ class Bmftc:
         self._orgAT_25 = marsh_spinup["orgAT_25"]
 
         # Load Forest Organic Profile files: Look-up table with soil organic matter for forest based on age and depth
-        directory_fop = "C:/Users/Lexi/PycharmProjects/BarrierBMFT/Input/PyBMFT-C/Forest_Organic_Profile"
+        directory_fop = os.path.join(marsh_datadir, "Forest_Organic_Profile")
+        # directory_fop = "C:/Users/Lexi/PycharmProjects/BarrierBMFT/Input/PyBMFT-C/Forest_Organic_Profile"
         file_forestOM = scipy.io.loadmat(directory_fop + "/forestOM.mat")  # [g] Table with forest organic matter profile stored in 25 depth increments of 2.5cm (rows) for forests of different ages (columns) from 1 to 80 years
         self._forestOM = file_forestOM["forestOM"]
         file_forestMIN = scipy.io.loadmat(directory_fop + "/forestMIN.mat")  # [g] Table with forest mineral matter profile stored in 25 depth increments of 2.5cm (rows) for forests of different ages (columns) from 1 to 80 years
