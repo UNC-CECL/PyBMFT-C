@@ -28,7 +28,7 @@ import math
 import bisect
 import os
 
-from buildtransect import buildtransect
+from buildtransect_cascade import buildtransect
 from funBAY import funBAY
 from funBAY import POOLstopp5
 from calcFE import calcFE
@@ -167,7 +167,6 @@ class Bmftc:
 
         # Load Forest Organic Profile files: Look-up table with soil organic matter for forest based on age and depth
         directory_fop = os.path.join(marsh_datadir, "Forest_Organic_Profile")
-        # directory_fop = "C:/Users/Lexi/PycharmProjects/BarrierBMFT/Input/PyBMFT-C/Forest_Organic_Profile"
         file_forestOM = scipy.io.loadmat(directory_fop + "/forestOM.mat")  # [g] Table with forest organic matter profile stored in 25 depth increments of 2.5cm (rows) for forests of different ages (columns) from 1 to 80 years
         self._forestOM = file_forestOM["forestOM"]
         file_forestMIN = scipy.io.loadmat(directory_fop + "/forestMIN.mat")  # [g] Table with forest mineral matter profile stored in 25 depth increments of 2.5cm (rows) for forests of different ages (columns) from 1 to 80 years
@@ -209,7 +208,13 @@ class Bmftc:
         self._marshOC_initial = self._marshOCP_initial / 100 * (self._marshOM_initial + self._marshMM_initial)  # [kg] Organic carbon deposited in the marsh over the past spinup years
 
         # Build starting transect
-        self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25, self._amp, self._wind, self._bfo, self._endyear, self._startyear, filename_equilbaydepth, self._forest_width_initial_fixed, self._forest_width_initial, plot=False)
+        self._B, self._db, self._elevation = buildtransect(self._RSLRi, self._Coi, self._slope, self._mwo, self._elev25,
+                                                           self._amp, self._wind, self._bfo, self._endyear,
+                                                           self._startyear, filename_equilbaydepth,
+                                                           self._forest_width_initial_fixed,
+                                                           self._forest_width_initial,
+                                                           plot=False,
+                                                           datadir=marsh_datadir)
 
         # Find first forest cell x-location
         self._x_f = bisect.bisect_left(self._elevation[self._startyear - 1, :], self._msl[self._startyear] + self._amp - self._Dmin + 0.03)  # First forest cell
